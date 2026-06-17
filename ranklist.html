@@ -349,6 +349,20 @@ ${top.map((p, i) => `
           datasets: [{ data: [p.correct, p.draw, p.wrong] }]
         }
       });
+      new Chart(document.getElementById('chart'), {
+        type: 'bar',
+        data: {
+          labels: ['Correct', 'Draw Bonus', 'Wrong'],
+          datasets: [{ data: [p.correct, p.draw, p.wrong] }]
+        }
+      });
+      new Chart(document.getElementById('chart'), {
+        type: 'radar',
+        data: {
+          labels: ['Correct', 'Draw Bonus', 'Wrong'],
+          datasets: [{ data: [p.correct, p.draw, p.wrong] }]
+        }
+      });
     }
 
     loadWorkbook();
