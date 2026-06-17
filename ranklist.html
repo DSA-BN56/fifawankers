@@ -1,173 +1,234 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>FIFA Prediction League Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:#0f172a;color:#e2e8f0}
-header{padding:20px;background:#111827}
-.container{padding:20px;max-width:1400px;margin:auto}
-.card{background:#1e293b;border-radius:14px;padding:16px;margin:12px 0}
-input{width:100%;padding:12px;border-radius:10px;border:none}
-table{width:100%;border-collapse:collapse}
-th,td{padding:10px;border-bottom:1px solid #334155;text-align:left}
-.podium{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.podium .card{text-align:center}
-.good{color:#22c55e}.bad{color:#ef4444}.draw{color:#f59e0b}
-.small{opacity:.8;font-size:.9em}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FIFA Prediction League Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Segoe UI, Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0
+    }
+
+    header {
+      padding: 20px;
+      background: #111827
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 1400px;
+      margin: auto
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 16px;
+      margin: 12px 0
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #334155;
+      text-align: left
+    }
+
+    .podium {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px
+    }
+
+    .podium .card {
+      text-align: center
+    }
+
+    .good {
+      color: #22c55e
+    }
+
+    .bad {
+      color: #ef4444
+    }
+
+    .draw {
+      color: #f59e0b
+    }
+
+    .small {
+      opacity: .8;
+      font-size: .9em
+    }
+  </style>
 </head>
+
 <body>
-<header>
-<h1>🏆 FIFA World Cup 2026 Prediction League</h1>
-<div class="small">Source: _FIFA WC 2026.xlsx</div>
-</header>
+  <header>
+    <h1>🏆 FIFA World Cup 2026 Prediction League</h1>
+    <div class="small">Source: _FIFA WC 2026.xlsx</div>
+  </header>
 
-<div class="container">
-<div class="card">
-<button onclick="loadWorkbook()">🔄 Refresh Data</button>
-</div>
+  <div class="container">
+    <div class="card">
+      <button onclick="loadWorkbook()">🔄 Refresh Data</button>
+    </div>
 
-<div id="summary"></div>
-<div id="podium"></div>
+    <div id="summary"></div>
+    <div id="podium"></div>
 
-<div class="card">
-<input id="search" placeholder="Search player..." oninput="renderPlayer()">
-</div>
+    <div class="card">
+      <input id="search" placeholder="Search player..." oninput="renderPlayer()">
+    </div>
 
-<div id="playerArea"></div>
-<div id="leaderboard"></div>
-</div>
+    <div id="playerArea"></div>
+    <div id="leaderboard"></div>
+  </div>
 
-<script>
-let workbookData={players:[],leaderboard:[],fixtures:{},results:{}};
+  <script>
+    let workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
 
-async function loadWorkbook(){
- try{
-  const res=await fetch('_FIFA WC 2026.xlsx?t='+Date.now());
-  const buf=await res.arrayBuffer();
-  const wb=XLSX.read(buf,{type:'array'});
+    async function loadWorkbook() {
+      try {
+        const res = await fetch('fifa_latest.xlsx?t=' + Date.now());
+        const buf = await res.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
 
-  parseWorkbook(wb);
- }catch(e){
-  document.body.innerHTML += '<div class="card">Failed to load _FIFA WC 2026.xlsx<br>'+e+'</div>';
- }
-}
-
-function parseWorkbook(wb){
-
- workbookData={players:[],leaderboard:[],fixtures:{},results:{}};
-
- const fixture=wb.Sheets['FIXTURE'];
- if(fixture){
-   const rows=XLSX.utils.sheet_to_json(fixture,{header:1});
-   rows.forEach(r=>{
-      if(r[0] && r[4]) workbookData.fixtures[r[0]]=r[4];
-   });
- }
-
- const rank=wb.Sheets['RANK LIST'];
- if(rank){
-   const rows=XLSX.utils.sheet_to_json(rank,{header:1});
-   rows.forEach(r=>{
-      if(r[1] && r[2]!==undefined){
-         workbookData.leaderboard.push({name:r[1],points:r[2]});
+        parseWorkbook(wb);
+      } catch (e) {
+        document.body.innerHTML += '<div class="card">Failed to load _FIFA WC 2026.xlsx<br>' + e + '</div>';
       }
-   });
- }
+    }
 
- const results=wb.Sheets['RESULTS'];
- if(results){
-   const rows=XLSX.utils.sheet_to_json(results,{header:1});
-   rows.forEach(r=>{
-      if(r[0]) workbookData.results[r[0]]=r[1];
-   });
- }
+    function parseWorkbook(wb) {
 
- const score=wb.Sheets['SCORE SHEET'];
- if(score){
-   const rows=XLSX.utils.sheet_to_json(score,{header:1});
+      workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
 
-   for(let i=3;i<rows.length;i++){
-      const r=rows[i];
-      if(!r || !r[0]) continue;
-
-      let player={
-        name:r[0],
-        total:r[1]||0,
-        correct:0,
-        wrong:0,
-        draw:0,
-        matches:[]
-      };
-
-      for(let c=2;c<r.length;c++){
-         let v=r[c];
-         if(v===undefined || v==="") continue;
-
-         let matchNo=c-1;
-         let status="Unknown";
-
-         if(v==2){status="Correct";player.correct++;}
-         else if(v==1){status="Draw Bonus";player.draw++;}
-         else if(v==-1){status="Wrong";player.wrong++;}
-
-         player.matches.push({
-            match:matchNo,
-            fixture:workbookData.fixtures[matchNo] || ("Match "+matchNo),
-            winner:workbookData.results[matchNo] || "Not Available",
-            status:status,
-            points:v
-         });
+      const fixture = wb.Sheets['FIXTURE'];
+      if (fixture) {
+        const rows = XLSX.utils.sheet_to_json(fixture, { header: 1 });
+        rows.forEach(r => {
+          if (r[0] && r[4]) workbookData.fixtures[r[0]] = r[4];
+        });
       }
 
-      workbookData.players.push(player);
-   }
- }
+      const rank = wb.Sheets['RANK LIST'];
+      if (rank) {
+        const rows = XLSX.utils.sheet_to_json(rank, { header: 1 });
+        rows.forEach(r => {
+          if (r[1] && r[2] !== undefined) {
+            workbookData.leaderboard.push({ name: r[1], points: r[2] });
+          }
+        });
+      }
 
- renderDashboard();
-}
+      const results = wb.Sheets['RESULTS'];
+      if (results) {
+        const rows = XLSX.utils.sheet_to_json(results, { header: 1 });
+        rows.forEach(r => {
+          if (r[0]) workbookData.results[r[0]] = r[1];
+        });
+      }
 
-function renderDashboard(){
- document.getElementById('summary').innerHTML=`
+      const score = wb.Sheets['SCORE SHEET'];
+      if (score) {
+        const rows = XLSX.utils.sheet_to_json(score, { header: 1 });
+
+        for (let i = 3; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r || !r[0]) continue;
+
+          let player = {
+            name: r[0],
+            total: r[1] || 0,
+            correct: 0,
+            wrong: 0,
+            draw: 0,
+            matches: []
+          };
+
+          for (let c = 2; c < r.length; c++) {
+            let v = r[c];
+            if (v === undefined || v === "") continue;
+
+            let matchNo = c - 1;
+            let status = "Unknown";
+
+            if (v == 2) { status = "Correct"; player.correct++; }
+            else if (v == 1) { status = "Draw Bonus"; player.draw++; }
+            else if (v == -1) { status = "Wrong"; player.wrong++; }
+
+            player.matches.push({
+              match: matchNo,
+              fixture: workbookData.fixtures[matchNo] || ("Match " + matchNo),
+              winner: workbookData.results[matchNo] || "Not Available",
+              status: status,
+              points: v
+            });
+          }
+
+          workbookData.players.push(player);
+        }
+      }
+
+      renderDashboard();
+    }
+
+    function renderDashboard() {
+      document.getElementById('summary').innerHTML = `
  <div class="card">
  Total Players: ${workbookData.players.length}<br>
  Matches Loaded: ${Object.keys(workbookData.fixtures).length}
  </div>`;
 
- const top=workbookData.leaderboard.slice(0,3);
+      const top = workbookData.leaderboard.slice(0, 3);
 
- document.getElementById('podium').innerHTML=`
+      document.getElementById('podium').innerHTML = `
  <div class="podium">
- ${top.map((p,i)=>`<div class="card"><h2>${['🥇','🥈','🥉'][i]||''}</h2><h3>${p.name||''}</h3><div>${p.points||''}</div></div>`).join('')}
+ ${top.map((p, i) => `<div class="card"><h2>${['🥇', '🥈', '🥉'][i] || ''}</h2><h3>${p.name || ''}</h3><div>${p.points || ''}</div></div>`).join('')}
  </div>`;
 
- document.getElementById('leaderboard').innerHTML=`
+      document.getElementById('leaderboard').innerHTML = `
  <div class="card">
  <h2>Leaderboard</h2>
  <table>
  <tr><th>Rank</th><th>Name</th><th>Points</th></tr>
- ${workbookData.leaderboard.map((p,i)=>`<tr><td>${i+1}</td><td>${p.name}</td><td>${p.points}</td></tr>`).join('')}
+ ${workbookData.leaderboard.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td>${p.points}</td></tr>`).join('')}
  </table>
  </div>`;
-}
+    }
 
-function renderPlayer(){
- let q=document.getElementById('search').value.toLowerCase();
- if(!q) return;
+    function renderPlayer() {
+      let q = document.getElementById('search').value.toLowerCase();
+      if (!q) return;
 
- let p=workbookData.players.find(x=>x.name.toLowerCase().includes(q));
- if(!p){
-   document.getElementById('playerArea').innerHTML='<div class="card">No player found</div>';
-   return;
- }
+      let p = workbookData.players.find(x => x.name.toLowerCase().includes(q));
+      if (!p) {
+        document.getElementById('playerArea').innerHTML = '<div class="card">No player found</div>';
+        return;
+      }
 
- const accuracy=Math.round((p.correct/Math.max(1,p.correct+p.wrong+p.draw))*100);
+      const accuracy = Math.round((p.correct / Math.max(1, p.correct + p.wrong + p.draw)) * 100);
 
- document.getElementById('playerArea').innerHTML=`
+      document.getElementById('playerArea').innerHTML = `
  <div class="card">
  <h2>${p.name}</h2>
  <p>Total Points: ${p.total}</p>
@@ -179,27 +240,28 @@ function renderPlayer(){
  <h3>Match History</h3>
  <table>
  <tr><th>Match</th><th>Fixture</th><th>Winner</th><th>Outcome</th><th>Points</th></tr>
- ${p.matches.map(m=>`
+ ${p.matches.map(m => `
  <tr>
  <td>${m.match}</td>
  <td>${m.fixture}</td>
  <td>${m.winner}</td>
- <td class="${m.points==2?'good':(m.points==1?'draw':'bad')}">${m.status}</td>
+ <td class="${m.points == 2 ? 'good' : (m.points == 1 ? 'draw' : 'bad')}">${m.status}</td>
  <td>${m.points}</td>
  </tr>`).join('')}
  </table>
  </div>`;
 
- new Chart(document.getElementById('chart'),{
-   type:'doughnut',
-   data:{
-    labels:['Correct','Draw Bonus','Wrong'],
-    datasets:[{data:[p.correct,p.draw,p.wrong]}]
-   }
- });
-}
+      new Chart(document.getElementById('chart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Correct', 'Draw Bonus', 'Wrong'],
+          datasets: [{ data: [p.correct, p.draw, p.wrong] }]
+        }
+      });
+    }
 
-loadWorkbook();
-</script>
+    loadWorkbook();
+  </script>
 </body>
+
 </html>
