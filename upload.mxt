@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Rank List Uploader</title>
+</head>
+
+<body>
+
+    <h2>Upload New Rank List</h2>
+
+    <input type="password" id="token" placeholder="GitHub PAT">
+    <button onclick="saveToken()">
+        Save Token
+    </button>
+    <input type="file" id="file">
+    <button onclick="uploadFile()">
+        Upload
+    </button>
+
+    <p id="status"></p>
+
+    <script>
+
+        const OWNER = "DSA-BN56";
+        const REPO = "ranklist";
+
+        function saveToken() {
+            localStorage.setItem(
+                "github_pat",
+                document.getElementById("token").value);
+            alert("Token saved locally");
+        }
+
+        window.onload = () => {
+            const saved =
+                localStorage.getItem("github_pat");
+
+            if (saved) {
+                document.getElementById("token").value =
+                    saved;
+            }
+        };
+
+        async function uploadFile() {
+
+
+            const TOKEN = document.getElementById('token').value;
+
+            if (!TOKEN) {
+                alert("Enter GitHub PAT");
+                return;
+            }
+            const file = document.getElementById('file').files[0];
+            if (!file) {
+                alert('Select a file');
+                return;
+            }
+
+            const content = await file.text();
+
+            const encoded =
+                btoa(unescape(encodeURIComponent(content)));
+
+            let sha = null;
+
+            try {
+
+                const existing = await fetch(
+                    `https://api.github.com/repos/${OWNER}/${REPO}/contents/ranklist.html`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${TOKEN}`
+                        }
+                    }
+                );
+
+                if (existing.ok) {
+                    const data = await existing.json();
+                    sha = data.sha;
+                }
+
+            } catch (e) { }
+
+            const response = await fetch(
+                `https://api.github.com/repos/${OWNER}/${REPO}/contents/ranklist.html`,
+                {
+                    method: 'PUT',
+                    headers: {
+                        Authorization: `Bearer ${TOKEN}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: 'Update ranklist',
+                        content: encoded,
+                        sha: sha
+                    })
+                }
+            );
+
+            if (response.ok) {
+                document.getElementById('status').innerHTML =
+                    "Uploaded successfully.";
+            } else {
+                document.getElementById('status').innerHTML =
+                    "Upload failed.";
+            }
+        }
+
+    </script>
+
+</body>
+
+</html>
