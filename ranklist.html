@@ -141,10 +141,26 @@
       workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
 
       const fixture = wb.Sheets['FIXTURE'];
+
       if (fixture) {
-        const rows = XLSX.utils.sheet_to_json(fixture, { header: 1 });
+
+        const rows = XLSX.utils.sheet_to_json(
+          fixture,
+          { header: 1 }
+        );
+
         rows.forEach(r => {
-          if (r[0] && r[4]) workbookData.fixtures[r[0]] = r[4];
+
+          const matchNo = r[0];
+
+          if (!matchNo) return;
+
+          // Column E
+          workbookData.fixtures[matchNo] = r[4] || "";
+
+          // Column G
+          workbookData.results[matchNo] = r[6] || "";
+
         });
       }
 
