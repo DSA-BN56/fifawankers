@@ -104,6 +104,18 @@
   </div>
 
   <script>
+    function showPlayer(name) {
+
+      document.getElementById('search').value = name;
+
+      renderPlayer();
+
+      document.getElementById('playerArea')
+        .scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+    }
     let workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
 
     async function loadWorkbook() {
@@ -242,7 +254,10 @@
 
       document.getElementById('playerArea').innerHTML = `
  <div class="card">
- <h2>${p.name}</h2>
+ <h3 style="cursor:pointer"
+    onclick="showPlayer('${p.name}')">
+    ${p.name}
+</h3>
  <p>Total Points: ${p.total}</p>
  <p>Accuracy: ${accuracy}%</p>
  <canvas id="chart"></canvas>
