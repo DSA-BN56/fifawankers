@@ -134,9 +134,21 @@
       if (rank) {
         const rows = XLSX.utils.sheet_to_json(rank, { header: 1 });
         rows.forEach(r => {
-          if (r[1] && r[2] !== undefined) {
-            workbookData.leaderboard.push({ name: r[1], points: r[2] });
+
+          if (!r[1] || !r[2]) return;
+
+          if (
+            String(r[1]).toLowerCase() === "name" ||
+            String(r[2]).toLowerCase().includes("goal")
+          ) {
+            return;
           }
+
+          workbookData.leaderboard.push({
+            name: String(r[1]),
+            points: Number(r[2])
+          });
+
         });
       }
 
