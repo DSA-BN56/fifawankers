@@ -255,6 +255,18 @@ ${top.map((p, i) => `
      onclick="showPlayer('${p.name.replace(/'/g, "\\'")}')">
 
     <h2>${['🥇', '🥈', '🥉'][i] || ''}</h2>
+     <img
+        src="pics/${p.name}.jpg"
+        onerror="this.src='pics/default.jpg'"
+        style="
+            width:120px;
+            height:120px;
+            border-radius:50%;
+            object-fit:cover;
+            border:4px solid gold;
+            margin-bottom:10px;
+        "
+    >
 
     <h3>${p.name}</h3>
 
