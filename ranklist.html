@@ -122,13 +122,35 @@
 
     async function loadWorkbook() {
       try {
-        const res = await fetch('fifa_latest.xlsx?t=' + Date.now());
+
+        const sheetId = "1JkPBg9yjQcoPRm5dFkQ9QWKv6BOp8PKXZ16hJAsem5k";
+
+        const url =
+          `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx&t=${Date.now()}`;
+
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
         const buf = await res.arrayBuffer();
-        const wb = XLSX.read(buf, { type: 'array' });
+
+        const wb = XLSX.read(buf, {
+          type: "array"
+        });
 
         parseWorkbook(wb);
+
       } catch (e) {
-        document.body.innerHTML += '<div class="card">Failed to load _FIFA WC 2026.xlsx<br>' + e + '</div>';
+
+        console.error(e);
+
+        document.body.innerHTML +=
+          `<div class="card">
+        Failed to load Google Sheet
+        <br>${e}
+      </div>`;
       }
     }
 
