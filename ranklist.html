@@ -325,9 +325,6 @@ ${top.map((p, i) => `
  <p>Total Points: ${p.total}</p>
  <p>Accuracy: ${accuracy}%</p>
  <canvas id="chart"></canvas>
- <canvas id="chart1"></canvas>
- <canvas id="chart2"></canvas>
-    
  </div>
 
  <div class="card">
@@ -352,14 +349,14 @@ ${top.map((p, i) => `
           datasets: [{ data: [p.correct, p.draw, p.wrong] }]
         }
       });
-      new Chart(document.getElementById('chart1'), {
+      new Chart(document.getElementById('chart'), {
         type: 'bar',
         data: {
           labels: ['Correct', 'Draw Bonus', 'Wrong'],
           datasets: [{ data: [p.correct, p.draw, p.wrong] }]
         }
       });
-      new Chart(document.getElementById('chart2'), {
+      new Chart(document.getElementById('chart'), {
         type: 'radar',
         data: {
           labels: ['Correct', 'Draw Bonus', 'Wrong'],
