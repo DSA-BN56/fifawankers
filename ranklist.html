@@ -59,7 +59,13 @@
     }
 
     .podium .card {
-      text-align: center
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .podium .card:hover {
+      transform: translateY(-4px);
     }
 
     .good {
@@ -226,9 +232,21 @@
       const top = workbookData.leaderboard.slice(0, 3);
 
       document.getElementById('podium').innerHTML = `
- <div class="podium">
- ${top.map((p, i) => `<div class="card"><h2>${['🥇', '🥈', '🥉'][i] || ''}</h2><h3>${p.name || ''}</h3><div>${p.points || ''}</div></div>`).join('')}
- </div>`;
+<div class="podium">
+${top.map((p, i) => `
+<div class="card"
+     style="cursor:pointer"
+     onclick="showPlayer('${p.name.replace(/'/g, "\\'")}')">
+
+    <h2>${['🥇', '🥈', '🥉'][i] || ''}</h2>
+
+    <h3>${p.name}</h3>
+
+    <div>${p.points}</div>
+
+</div>
+`).join('')}
+</div>`;
 
       document.getElementById('leaderboard').innerHTML = `
  <div class="card">
