@@ -197,6 +197,7 @@
           }
 
           workbookData.leaderboard.push({
+            rank: Number(r[0]),
             name: String(r[1]),
             points: Number(r[2])
           });
@@ -299,7 +300,7 @@ ${top.map((p, i) => `
  <h2>Leaderboard</h2>
  <table>
  <tr><th>Rank</th><th>Name</th><th>Points</th></tr>
- ${workbookData.leaderboard.map((p, i) => `<tr><td>${i + 1}</td><td>${p.name}</td><td>${p.points}</td></tr>`).join('')}
+ ${workbookData.leaderboard.map((p, i) => `<tr><td>${p.rank}</td><td>${p.name}</td><td>${p.points}</td></tr>`).join('')}
  </table>
  </div>`;
     }
