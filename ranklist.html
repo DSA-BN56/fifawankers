@@ -340,10 +340,6 @@ ${podiumRanks.map((group, idx) => `
     ${group.players[0]?.points || 0} Points
 </div>
 
-<div style="font-size:12px;opacity:.7">
-    ${group.players.length} Player${group.players.length > 1 ? 's' : ''}
-</div>
-
 </div>
 
 `).join('')}
@@ -374,10 +370,12 @@ ${podiumRanks.map((group, idx) => `
           img.style.opacity = 0;
 
           setTimeout(() => {
+
             img.onerror = () => img.src = 'pics/default.jpg';
             img.dataset.player = player.name;
             img.src = `pics/${player.name}.jpg`;
             img.style.opacity = 1;
+
           }, 200);
 
           group.players.forEach((p, i) => {
