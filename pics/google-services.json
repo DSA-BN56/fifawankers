@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "501657520398",
+    "firebase_url": "https://sms-speaker-45f37-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "sms-speaker-45f37",
+    "storage_bucket": "sms-speaker-45f37.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:501657520398:android:d4fe4ec83bb02109852f5f",
+        "android_client_info": {
+          "package_name": "com.example.creditclient"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHEJ9WbQN3Xkud9r1y7UeTcdFlFcDUpHA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:501657520398:android:93fb96f06584fe95852f5f",
+        "android_client_info": {
+          "package_name": "com.example.smsspeaker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHEJ9WbQN3Xkud9r1y7UeTcdFlFcDUpHA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
