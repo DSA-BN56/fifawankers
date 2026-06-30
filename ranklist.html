@@ -267,9 +267,9 @@
             let matchNo = c - 1;
             let status = "Unknown";
 
-            if (v == 2) { status = "Correct"; player.correct++; }
+            if (v > 1) { status = "Correct"; player.correct++; }
             else if (v == 1) { status = "Draw Bonus"; player.draw++; }
-            else if (v == -1) { status = "Wrong"; player.wrong++; }
+            else if (v < 0) { status = "Wrong"; player.wrong++; }
 
             player.matches.push({
               match: matchNo,
@@ -439,7 +439,7 @@ ${podiumRanks.map((group, idx) => `
  <td>${m.match}</td>
  <td>${m.fixture}</td>
  <td>${m.winner}</td>
- <td class="${m.points == 2 ? 'good' : (m.points == 1 ? 'draw' : 'bad')}">${m.status}</td>
+ <td class="${m.points > 1 ? 'good' : (m.points == 1 ? 'draw' : 'bad')}">${m.status}</td>
  <td>${m.points}</td>
  </tr>`).join('')}
  </table>
