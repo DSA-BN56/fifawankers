@@ -110,6 +110,160 @@
       opacity: .8;
       font-size: .9em
     }
+
+    .race-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px
+    }
+
+    .race-head h2 {
+      margin: 0
+    }
+
+    .race-match-center {
+      text-align: center;
+      margin: 8px 0 14px
+    }
+
+    .race-status {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .race-pill {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 700;
+      color: #fbbf24
+    }
+
+    .race-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px
+    }
+
+    .race-controls button {
+      border: 1px solid #475569;
+      background: #111827;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 700
+    }
+
+    .race-controls button:hover {
+      background: #334155
+    }
+
+    .race-controls button:disabled {
+      opacity: .45;
+      cursor: not-allowed
+    }
+
+    .race-bars {
+      display: grid;
+      gap: 10px
+    }
+
+    .race-row {
+      display: grid;
+      grid-template-columns: 54px minmax(180px, 1fr) 54px;
+      gap: 10px;
+      align-items: center;
+      min-height: 50px;
+      will-change: transform
+    }
+
+    .race-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, .9);
+      background: #0f172a
+    }
+
+    .race-rank {
+      font-weight: 800;
+      color: #cbd5e1;
+      text-align: right
+    }
+
+    .race-name {
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .race-track {
+      height: 30px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      position: relative
+    }
+
+    .race-fill {
+      height: 100%;
+      min-width: 3px;
+      border-radius: 7px;
+      background: var(--race-color, #22c55e);
+      transition: width var(--race-speed, .16s) linear
+    }
+
+    .race-runner {
+      position: absolute;
+      left: var(--runner-left, 2%);
+      top: 50%;
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      max-width: 190px;
+      padding: 3px 8px 3px 3px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, .88);
+      border: 1px solid rgba(226, 232, 240, .25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .24);
+      transform: translate(-100%, -50%);
+      transition: left var(--race-speed, .16s) linear
+    }
+
+    .race-score {
+      text-align: right;
+      font-size: 1.1em;
+      font-weight: 800
+    }
+
+    @media (max-width: 720px) {
+      .podium {
+        grid-template-columns: 1fr
+      }
+
+      .race-row {
+        grid-template-columns: 44px 1fr 42px
+      }
+
+      .race-track {
+        grid-column: 2 / 3;
+        grid-row: auto
+      }
+
+      .race-runner {
+        max-width: 140px
+      }
+    }
   </style>
 </head>
 
@@ -122,6 +276,7 @@
   <div class="container">
     <div id="summary"></div>
     <div id="podium"></div>
+    <div id="raceArea"></div>
 
     <div class="card">
       <input id="search" placeholder="Search player..." oninput="renderPlayer()">
@@ -149,6 +304,19 @@
 
     let workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
     let podiumTimers = [];
+    let raceState = {
+      frames: [],
+      frameIndex: 0,
+      startFrameIndex: 0,
+      startMatch: 12,
+      timer: null,
+      playing: false,
+      stopped: true,
+      maxScore: 1,
+      autoStarted: false,
+      observer: null,
+      colors: {}
+    };
 
     async function loadWorkbook() {
       try {
@@ -397,6 +565,8 @@ ${podiumRanks.map((group, idx) => `
 
       });
 
+      setupRaceAnimation();
+
       document.getElementById('leaderboard').innerHTML = `
  <div class="card">
  <h2>Leaderboard</h2>
@@ -405,6 +575,311 @@ ${podiumRanks.map((group, idx) => `
  ${workbookData.leaderboard.map((p, i) => `<tr><td>${p.rank}</td><td>${p.name}</td><td>${p.points}</td></tr>`).join('')}
  </table>
  </div>`;
+    }
+
+    function setupRaceAnimation() {
+      stopRace(false);
+      if (raceState.observer) {
+        raceState.observer.disconnect();
+        raceState.observer = null;
+      }
+      raceState.autoStarted = false;
+      buildRaceFrames();
+
+      if (!raceState.frames.length) {
+        document.getElementById('raceArea').innerHTML = `
+          <div class="card">Race bar animation will appear after match scores are loaded.</div>`;
+        return;
+      }
+
+      document.getElementById('raceArea').innerHTML = `
+        <div class="card">
+          <div class="race-head">
+            <h2>Top 10 Progression</h2>
+            <div class="race-status">
+              <span class="race-pill" id="raceLeader">Leader: -</span>
+            </div>
+          </div>
+          <div class="race-controls">
+            <button id="racePlay" onclick="toggleRace()">Play</button>
+            <button id="raceStop" onclick="stopRace()">Stop</button>
+            <button onclick="replayRace()">Replay</button>
+          </div>
+          <div class="race-match-center">
+            <span class="race-pill" id="raceMatch">Match 0 / ${raceState.frames.length - 1}</span>
+          </div>
+          <div class="race-bars" id="raceBars"></div>
+        </div>`;
+
+      renderRaceFrame(raceState.startFrameIndex);
+      startRaceWhenVisible();
+    }
+
+    function buildRaceFrames() {
+      const rankedNames = workbookData.leaderboard
+        .slice()
+        .sort((a, b) => a.rank - b.rank || b.points - a.points)
+        .map(p => p.name);
+
+      const topNames = (rankedNames.length ? rankedNames : workbookData.players
+        .slice()
+        .sort((a, b) => b.total - a.total)
+        .map(p => p.name))
+        .slice(0, 10);
+
+      const topPlayers = topNames
+        .map(name => workbookData.players.find(p => p.name === name))
+        .filter(Boolean);
+      const palette = [
+        '#22c55e', '#38bdf8', '#f97316', '#a78bfa', '#ef4444',
+        '#14b8a6', '#eab308', '#ec4899', '#84cc16', '#60a5fa'
+      ];
+
+      raceState.colors = {};
+      topPlayers.forEach((player, index) => {
+        raceState.colors[player.name] = palette[index % palette.length];
+      });
+
+      const matchNumbers = [...new Set([
+        ...Object.keys(workbookData.fixtures).map(Number).filter(Boolean),
+        ...topPlayers.flatMap(p => p.matches.map(m => Number(m.match)).filter(Boolean))
+      ])].sort((a, b) => a - b);
+
+      const scores = {};
+      topPlayers.forEach(p => scores[p.name] = 0);
+
+      const startingFrame = {
+        match: 0,
+        standings: topPlayers.map(p => ({ name: p.name, points: 0 }))
+      };
+
+      raceState.frames = [startingFrame];
+
+      matchNumbers.forEach(matchNo => {
+        topPlayers.forEach(player => {
+          const match = player.matches.find(m => Number(m.match) === matchNo);
+          scores[player.name] += Number(match?.points || 0);
+        });
+
+        raceState.frames.push({
+          match: matchNo,
+          standings: topPlayers
+            .map(p => ({ name: p.name, points: scores[p.name] }))
+            .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+        });
+      });
+
+      raceState.maxScore = Math.max(
+        1,
+        ...raceState.frames.flatMap(frame => frame.standings.map(p => p.points))
+      );
+      raceState.startFrameIndex = raceState.frames.findIndex(frame => frame.match >= raceState.startMatch);
+      if (raceState.startFrameIndex < 0) {
+        raceState.startFrameIndex = 0;
+      }
+    }
+
+    function renderRaceFrame(index, slowFrame = false) {
+      if (!raceState.frames.length) return;
+
+      raceState.frameIndex = Math.max(0, Math.min(index, raceState.frames.length - 1));
+      const frame = raceState.frames[raceState.frameIndex];
+      const leader = frame.standings[0];
+      const maxFrameScore = Math.max(1, ...frame.standings.map(p => p.points), raceState.maxScore);
+      const bars = document.getElementById('raceBars');
+
+      document.getElementById('raceMatch').textContent =
+        `Match ${frame.match} / ${raceState.frames[raceState.frames.length - 1].match}`;
+      document.getElementById('raceLeader').textContent =
+        leader ? `Leader: ${leader.name}` : 'Leader: -';
+
+      if (!bars) return;
+      bars.style.setProperty('--race-speed', slowFrame ? '.48s' : '.16s');
+
+      if (!bars.children.length) {
+        bars.innerHTML = frame.standings.map((player, index) => `
+          <div class="race-row" data-player="${player.name}">
+            <div class="race-rank">#${index + 1}</div>
+            <div class="race-track">
+              <div class="race-fill" style="width:2%;--race-color:${raceState.colors[player.name] || '#22c55e'}"></div>
+              <div class="race-runner" style="--runner-left:2%">
+                <img class="race-photo" src="pics/${player.name}.jpg" onerror="this.src='pics/default.jpg'" alt="">
+                <div class="race-name" title="${player.name}">${player.name}</div>
+              </div>
+            </div>
+            <div class="race-score">0</div>
+          </div>`).join('');
+      }
+
+      const previousTops = new Map(
+        [...bars.children].map(row => [row.dataset.player, row.getBoundingClientRect().top])
+      );
+      const movedRows = [];
+
+      frame.standings.forEach((player, index) => {
+        const row = bars.querySelector(`[data-player="${CSS.escape(player.name)}"]`);
+        if (!row) return;
+
+        const width = Math.max(2, (player.points / maxFrameScore) * 100);
+        row.style.order = index;
+        row.querySelector('.race-rank').textContent = `#${index + 1}`;
+        row.querySelector('.race-name').textContent = player.name;
+        row.querySelector('.race-fill').style.width = `${width}%`;
+        row.querySelector('.race-fill').style.setProperty('--race-color', raceState.colors[player.name] || '#22c55e');
+        row.querySelector('.race-runner').style.setProperty('--runner-left', `${width}%`);
+        row.querySelector('.race-score').textContent = player.points;
+        movedRows.push(row);
+      });
+
+      movedRows.forEach(row => {
+        const previousTop = previousTops.get(row.dataset.player);
+        if (previousTop === undefined) return;
+
+        const newTop = row.getBoundingClientRect().top;
+        const distance = previousTop - newTop;
+        if (!distance) return;
+
+        row.style.transition = 'none';
+        row.style.transform = `translateY(${distance}px)`;
+      });
+
+      bars.getBoundingClientRect();
+
+      requestAnimationFrame(() => {
+        movedRows.forEach(row => {
+          row.style.transition = `transform ${slowFrame ? '.48s' : '.16s'} ease`;
+          row.style.transform = 'translateY(0)';
+        });
+      });
+
+      updateRaceButtons();
+    }
+
+    function startRaceWhenVisible() {
+      const raceArea = document.getElementById('raceArea');
+      if (!raceArea) return;
+
+      const startOnce = () => {
+        if (raceState.autoStarted) return;
+
+        raceState.autoStarted = true;
+        playRace();
+
+        if (raceState.observer) {
+          raceState.observer.disconnect();
+          raceState.observer = null;
+        }
+      };
+
+      if (!('IntersectionObserver' in window)) {
+        const onScroll = () => {
+          const rect = raceArea.getBoundingClientRect();
+          if (rect.top < window.innerHeight * .7 && rect.bottom > window.innerHeight * .25) {
+            window.removeEventListener('scroll', onScroll);
+            startOnce();
+          }
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        return;
+      }
+
+      raceState.observer = new IntersectionObserver(entries => {
+        if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= .35)) {
+          startOnce();
+        }
+      }, { threshold: [.35] });
+
+      raceState.observer.observe(raceArea);
+    }
+
+    function toggleRace() {
+      if (raceState.playing) {
+        pauseRace();
+      } else {
+        playRace();
+      }
+    }
+
+    function playRace() {
+      if (!raceState.frames.length || raceState.playing) return;
+
+      if (raceState.frameIndex >= raceState.frames.length - 1) {
+        raceState.frameIndex = raceState.startFrameIndex;
+        renderRaceFrame(raceState.startFrameIndex);
+      }
+
+      raceState.playing = true;
+      raceState.stopped = false;
+      updateRaceButtons();
+      scheduleNextRaceFrame();
+    }
+
+    function scheduleNextRaceFrame() {
+      clearTimeout(raceState.timer);
+
+      const nextIndex = raceState.frameIndex + 1;
+      if (!raceState.playing || nextIndex >= raceState.frames.length) {
+        pauseRace();
+        return;
+      }
+
+      const slowFrame = hasRacePositionChange(raceState.frameIndex, nextIndex);
+      const delay = slowFrame ? 520 : 175;
+
+      raceState.timer = setTimeout(() => {
+        renderRaceFrame(nextIndex, slowFrame);
+        scheduleNextRaceFrame();
+      }, delay);
+    }
+
+    function hasRacePositionChange(fromIndex, toIndex) {
+      const fromFrame = raceState.frames[fromIndex];
+      const toFrame = raceState.frames[toIndex];
+      if (!fromFrame || !toFrame) return false;
+
+      return toFrame.standings.some((player, index) =>
+        fromFrame.standings[index]?.name !== player.name
+      );
+    }
+
+    function pauseRace() {
+      clearTimeout(raceState.timer);
+      raceState.timer = null;
+      raceState.playing = false;
+      updateRaceButtons();
+    }
+
+    function stopRace(render = true) {
+      clearTimeout(raceState.timer);
+      raceState.timer = null;
+      raceState.playing = false;
+      raceState.stopped = true;
+      raceState.frameIndex = raceState.startFrameIndex;
+
+      if (render && raceState.frames.length && document.getElementById('raceBars')) {
+        renderRaceFrame(raceState.startFrameIndex);
+      }
+    }
+
+    function replayRace() {
+      stopRace();
+      playRace();
+    }
+
+    function updateRaceButtons() {
+      const playButton = document.getElementById('racePlay');
+      const stopButton = document.getElementById('raceStop');
+
+      if (!playButton || !stopButton) return;
+
+      playButton.textContent = raceState.playing ? 'Pause' : 'Resume';
+      if (raceState.stopped || raceState.frameIndex === raceState.startFrameIndex) {
+        playButton.textContent = 'Play';
+      }
+
+      stopButton.disabled = raceState.stopped && raceState.frameIndex === raceState.startFrameIndex;
     }
 
     function renderPlayer() {
