@@ -601,8 +601,7 @@ ${podiumRanks.map((group, idx) => `
             </div>
           </div>
           <div class="race-controls">
-            <button id="racePlay" onclick="toggleRace()">Play</button>
-            <button id="raceStop" onclick="stopRace()">Stop</button>
+            <button id="raceStop" onclick="toggleStopResumeRace()">Pause</button>
             <button onclick="replayRace()">Replay</button>
           </div>
           <div class="race-match-center">
@@ -794,14 +793,6 @@ ${podiumRanks.map((group, idx) => `
       raceState.observer.observe(raceArea);
     }
 
-    function toggleRace() {
-      if (raceState.playing) {
-        pauseRace();
-      } else {
-        playRace();
-      }
-    }
-
     function playRace() {
       if (!raceState.frames.length || raceState.playing) return;
 
@@ -868,18 +859,22 @@ ${podiumRanks.map((group, idx) => `
       playRace();
     }
 
+    function toggleStopResumeRace() {
+      if (raceState.playing) {
+        pauseRace();
+      } else {
+        playRace();
+      }
+    }
+
     function updateRaceButtons() {
-      const playButton = document.getElementById('racePlay');
       const stopButton = document.getElementById('raceStop');
 
-      if (!playButton || !stopButton) return;
+      if (!stopButton) return;
 
-      playButton.textContent = raceState.playing ? 'Pause' : 'Resume';
-      if (raceState.stopped || raceState.frameIndex === raceState.startFrameIndex) {
-        playButton.textContent = 'Play';
-      }
-
-      stopButton.disabled = raceState.stopped && raceState.frameIndex === raceState.startFrameIndex;
+      stopButton.textContent = raceState.playing ? 'Pause' : 'Resume';
+      stopButton.disabled =
+        raceState.stopped && raceState.frameIndex === raceState.startFrameIndex;
     }
 
     function renderPlayer() {
