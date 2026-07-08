@@ -595,7 +595,7 @@ ${podiumRanks.map((group, idx) => `
       document.getElementById('raceArea').innerHTML = `
         <div class="card">
           <div class="race-head">
-            <h2>Top 10 Progression</h2>
+            <h2>Player Progression</h2>
             <div class="race-status">
               <span class="race-pill" id="raceLeader">Leader: -</span>
             </div>
@@ -620,13 +620,12 @@ ${podiumRanks.map((group, idx) => `
         .sort((a, b) => a.rank - b.rank || b.points - a.points)
         .map(p => p.name);
 
-      const topNames = (rankedNames.length ? rankedNames : workbookData.players
+      const playerNames = (rankedNames.length ? rankedNames : workbookData.players
         .slice()
         .sort((a, b) => b.total - a.total)
-        .map(p => p.name))
-        .slice(0, 10);
+        .map(p => p.name));
 
-      const topPlayers = topNames
+      const racePlayers = playerNames
         .map(name => workbookData.players.find(p => p.name === name))
         .filter(Boolean);
       const palette = [
@@ -635,34 +634,34 @@ ${podiumRanks.map((group, idx) => `
       ];
 
       raceState.colors = {};
-      topPlayers.forEach((player, index) => {
+      racePlayers.forEach((player, index) => {
         raceState.colors[player.name] = palette[index % palette.length];
       });
 
       const matchNumbers = [...new Set([
         ...Object.keys(workbookData.fixtures).map(Number).filter(Boolean),
-        ...topPlayers.flatMap(p => p.matches.map(m => Number(m.match)).filter(Boolean))
+        ...racePlayers.flatMap(p => p.matches.map(m => Number(m.match)).filter(Boolean))
       ])].sort((a, b) => a - b);
 
       const scores = {};
-      topPlayers.forEach(p => scores[p.name] = 0);
+      racePlayers.forEach(p => scores[p.name] = 0);
 
       const startingFrame = {
         match: 0,
-        standings: topPlayers.map(p => ({ name: p.name, points: 0 }))
+        standings: racePlayers.map(p => ({ name: p.name, points: 0 }))
       };
 
       raceState.frames = [startingFrame];
 
       matchNumbers.forEach(matchNo => {
-        topPlayers.forEach(player => {
+        racePlayers.forEach(player => {
           const match = player.matches.find(m => Number(m.match) === matchNo);
           scores[player.name] += Number(match?.points || 0);
         });
 
         raceState.frames.push({
           match: matchNo,
-          standings: topPlayers
+          standings: racePlayers
             .map(p => ({ name: p.name, points: scores[p.name] }))
             .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
         });
@@ -713,10 +712,13 @@ ${podiumRanks.map((group, idx) => `
       const previousTops = new Map(
         [...bars.children].map(row => [row.dataset.player, row.getBoundingClientRect().top])
       );
+      const rowsByPlayer = new Map(
+        [...bars.children].map(row => [row.dataset.player, row])
+      );
       const movedRows = [];
 
       frame.standings.forEach((player, index) => {
-        const row = bars.querySelector(`[data-player="${CSS.escape(player.name)}"]`);
+        const row = rowsByPlayer.get(player.name);
         if (!row) return;
 
         const width = Math.max(2, (player.points / maxFrameScore) * 100);
@@ -762,6 +764,8 @@ ${podiumRanks.map((group, idx) => `
         if (raceState.autoStarted) return;
 
         raceState.autoStarted = true;
+        window.removeEventListener('scroll', checkRaceVisibility);
+        window.removeEventListener('resize', checkRaceVisibility);
         playRace();
 
         if (raceState.observer) {
@@ -770,25 +774,31 @@ ${podiumRanks.map((group, idx) => `
         }
       };
 
-      if (!('IntersectionObserver' in window)) {
-        const onScroll = () => {
-          const rect = raceArea.getBoundingClientRect();
-          if (rect.top < window.innerHeight * .7 && rect.bottom > window.innerHeight * .25) {
-            window.removeEventListener('scroll', onScroll);
-            startOnce();
-          }
-        };
+      const checkRaceVisibility = () => {
+        const rect = raceArea.getBoundingClientRect();
+        if (rect.top < window.innerHeight * .75 && rect.bottom > window.innerHeight * .15) {
+          startOnce();
+        }
+      };
 
-        window.addEventListener('scroll', onScroll, { passive: true });
-        onScroll();
+      window.addEventListener('scroll', checkRaceVisibility, { passive: true });
+      window.addEventListener('resize', checkRaceVisibility);
+      setTimeout(checkRaceVisibility, 0);
+
+      if (!('IntersectionObserver' in window)) {
         return;
       }
 
       raceState.observer = new IntersectionObserver(entries => {
-        if (entries.some(entry => entry.isIntersecting && entry.intersectionRatio >= .35)) {
+        if (entries.some(entry => {
+          const rect = entry.boundingClientRect;
+          return entry.isIntersecting &&
+            rect.top < window.innerHeight * .75 &&
+            rect.bottom > window.innerHeight * .15;
+        })) {
           startOnce();
         }
-      }, { threshold: [.35] });
+      }, { threshold: 0 });
 
       raceState.observer.observe(raceArea);
     }
@@ -873,8 +883,7 @@ ${podiumRanks.map((group, idx) => `
       if (!stopButton) return;
 
       stopButton.textContent = raceState.playing ? 'Pause' : 'Resume';
-      stopButton.disabled =
-        raceState.stopped && raceState.frameIndex === raceState.startFrameIndex;
+      stopButton.disabled = !raceState.frames.length;
     }
 
     function renderPlayer() {
