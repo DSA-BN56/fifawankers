@@ -691,6 +691,20 @@ ${podiumRanks.map((group, idx) => `
       }
     }
 
+    function getOrdinalHTML(n) {
+      let j = n % 10,
+          k = n % 100;
+      let suffix = "th";
+      if (j == 1 && k != 11) {
+        suffix = "st";
+      } else if (j == 2 && k != 12) {
+        suffix = "nd";
+      } else if (j == 3 && k != 13) {
+        suffix = "rd";
+      }
+      return `${n}<sup>${suffix}</sup>`;
+    }
+
     function renderRaceFrame(index, slowFrame = false) {
       if (!raceState.frames.length) return;
 
@@ -708,10 +722,18 @@ ${podiumRanks.map((group, idx) => `
       if (!bars) return;
       bars.style.setProperty('--race-speed', slowFrame ? '.48s' : '.16s');
 
+      let currentRank = 1;
+      const standingsWithRank = frame.standings.map((player, index) => {
+        if (index > 0 && player.points < frame.standings[index - 1].points) {
+          currentRank = index + 1;
+        }
+        return { ...player, rank: currentRank };
+      });
+
       if (!bars.children.length) {
-        bars.innerHTML = frame.standings.map((player, index) => `
+        bars.innerHTML = standingsWithRank.map((player) => `
           <div class="race-row" data-player="${player.name}">
-            <div class="race-rank">#${index + 1}</div>
+            <div class="race-rank">${getOrdinalHTML(player.rank)}</div>
             <div class="race-track">
               <div class="race-fill" style="width:2%;--race-color:${raceState.colors[player.name] || '#22c55e'}"></div>
               <div class="race-runner" style="--runner-left:2%">
@@ -731,13 +753,13 @@ ${podiumRanks.map((group, idx) => `
       );
       const movedRows = [];
 
-      frame.standings.forEach((player, index) => {
+      standingsWithRank.forEach((player, index) => {
         const row = rowsByPlayer.get(player.name);
         if (!row) return;
 
         const width = Math.max(2, (player.points / maxFrameScore) * 100);
         row.style.order = index;
-        row.querySelector('.race-rank').textContent = `#${index + 1}`;
+        row.querySelector('.race-rank').innerHTML = getOrdinalHTML(player.rank);
         row.querySelector('.race-name').textContent = player.name;
         row.querySelector('.race-fill').style.width = `${width}%`;
         row.querySelector('.race-fill').style.setProperty('--race-color', raceState.colors[player.name] || '#22c55e');
