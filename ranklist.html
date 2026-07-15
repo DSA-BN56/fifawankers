@@ -425,26 +425,40 @@
             correct: 0,
             wrong: 0,
             draw: 0,
-            matches: []
+            matches: [],
+            bqPoints: 0
           };
 
           for (let c = 2; c < r.length; c++) {
             let v = r[c];
             if (v === undefined || v === "") continue;
 
-            let matchNo = c - 1;
+            let matchVal = rows[2] ? rows[2][c] : null;
+            if (matchVal === undefined || matchVal === null || matchVal === "") {
+              let pointsVal = Number(v);
+              if (!isNaN(pointsVal)) {
+                player.bqPoints += pointsVal;
+              }
+              continue;
+            }
+            let matchNo = Number(matchVal);
+            if (isNaN(matchNo)) continue;
+
+            let pointsVal = Number(v);
+            if (isNaN(pointsVal)) continue;
+
             let status = "Unknown";
 
-            if (v > 1) { status = "Correct"; player.correct++; }
-            else if (v == 1) { status = "Draw Bonus"; player.draw++; }
-            else if (v < 0) { status = "Wrong"; player.wrong++; }
+            if (pointsVal > 1) { status = "Correct"; player.correct++; }
+            else if (pointsVal == 1) { status = "Draw Bonus"; player.draw++; }
+            else if (pointsVal < 0) { status = "Wrong"; player.wrong++; }
 
             player.matches.push({
               match: matchNo,
               fixture: workbookData.fixtures[matchNo] || ("Match " + matchNo),
               winner: workbookData.results[matchNo] || "Not Available",
               status: status,
-              points: v
+              points: pointsVal
             });
           }
 
@@ -644,11 +658,11 @@ ${podiumRanks.map((group, idx) => `
       ])].sort((a, b) => a - b);
 
       const scores = {};
-      racePlayers.forEach(p => scores[p.name] = 0);
+      racePlayers.forEach(p => scores[p.name] = p.bqPoints || 0);
 
       const startingFrame = {
         match: 0,
-        standings: racePlayers.map(p => ({ name: p.name, points: 0 }))
+        standings: racePlayers.map(p => ({ name: p.name, points: p.bqPoints || 0 }))
       };
 
       raceState.frames = [startingFrame];
@@ -904,7 +918,7 @@ ${podiumRanks.map((group, idx) => `
     onclick="showPlayer('${p.name}')">
     ${p.name}
 </h3>
- <p>Total Points: ${p.total}</p>
+  <p>Total Points: ${p.total}</p>
  <p>Accuracy: ${accuracy}%</p>
  <canvas id="chart"></canvas>
  </div>
