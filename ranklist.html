@@ -69,15 +69,43 @@
       transform: translateY(-4px);
     }
 
+    .podium-photo-wrap {
+      position: relative;
+      width: 120px;
+      margin: 10px auto;
+    }
+
     .podium-photo {
       width: 120px;
       height: 120px;
       border-radius: 50%;
       object-fit: cover;
       border: 4px solid gold;
-      margin: 10px auto;
       display: block;
       transition: opacity .4s ease;
+    }
+
+    .fan-flag {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #e2e8f0;
+      background: #0f172a;
+      box-shadow: 0 2px 6px rgba(0,0,0,.4);
+      transition: opacity .4s ease;
+    }
+
+    .podium-photo-wrap .fan-flag {
+      right: -2px;
+      bottom: 8px;
+      width: 36px;
+      height: 36px;
+    }
+
+    .fan-flag[hidden] {
+      display: none;
     }
 
     .podium-name {
@@ -185,6 +213,13 @@
       will-change: transform
     }
 
+    .race-photo-wrap {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      flex: none;
+    }
+
     .race-photo {
       width: 32px;
       height: 32px;
@@ -192,6 +227,14 @@
       object-fit: cover;
       border: 2px solid rgba(255, 255, 255, .9);
       background: #0f172a
+    }
+
+    .race-photo-wrap .fan-flag {
+      width: 16px;
+      height: 16px;
+      right: -4px;
+      bottom: -4px;
+      border-width: 1px;
     }
 
     .race-rank {
@@ -301,6 +344,49 @@
         });
     }
 
+
+    // Which World Cup team each participant is rooting for (from the fan survey).
+    // Team flag images live at pics/<CODE>.jpeg (FRA, ARG, SPA, ENG).
+    const FAN_TEAMS = {
+      "ABIN (IT)": "FRA",
+      "ABU (ECE)": "ARG",
+      "ABY (ECE)": "ARG",
+      "AJITH (ME)": "FRA",
+      "ALBIN (ECE)": "FRA",
+      "ANISH J (ME)": "FRA",
+      "ANISH SAM (EEE)": "SPA",
+      "ANSON (ECE)": "ARG",
+      "DEEPU (ECE)": "FRA",
+      "EBEN (EEE)": "FRA",
+      "ELDHO (EEE)": "ENG",
+      "GEORGE J (ME)": "FRA",
+      "GEORGE T (ECE)": "ARG",
+      "JACOB J (CSE)": "FRA",
+      "JEFFIN (EEE)": "SPA",
+      "JINU M (ECE)": "SPA",
+      "JOBY (ECE)": "FRA",
+      "JOYAL (EEE)": "FRA",
+      "NIDHIN (ECE)": "FRA",
+      "PRASEETH (ECE)": "FRA",
+      "PRASHANTH (EEE)": "SPA",
+      "RAKESH (ECE)": "FRA",
+      "RATHISH (ME)": "FRA",
+      "RESHMA (CSE)": "FRA",
+      "SAJI (ECE)": "ARG",
+      "SHIJO (ECE)": "FRA",
+      "SURAJ (CSE)": "FRA",
+      "TIBIN (EEE)": "FRA",
+      "VARSHA (ECE)": "SPA",
+      "VINEESH (ECE)": "FRA",
+      "VINU (EEE)": "FRA"
+      // JACKSON (ECE) and SOORAJ (ECE) didn't declare a team in the fan survey.
+    };
+
+    function fanFlagImg(name, extraClass = "") {
+      const team = FAN_TEAMS[name];
+      if (!team) return "";
+      return `<img class="fan-flag ${extraClass}" src="pics/${team}.jpeg" alt="${team} fan" title="${team} fan" onerror="this.hidden=true">`;
+    }
 
     let workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
     let podiumTimers = [];
@@ -498,14 +584,17 @@ ${podiumRanks.map((group, idx) => `
     <h2>${group.medal}</h2>
     <div>Rank #${group.rank}</div>
 
-    <img
-        id="podium-img-${idx}"
-        src="pics/${group.players[0]?.name}.jpg"
-        data-player="${group.players[0]?.name || ''}"
-    onclick="showPlayer(this.dataset.player)"
-        onerror="this.src='pics/default.jpg'"
-        class="podium-photo"
-    >
+    <div class="podium-photo-wrap">
+        <img
+            id="podium-img-${idx}"
+            src="pics/${group.players[0]?.name}.jpg"
+            data-player="${group.players[0]?.name || ''}"
+        onclick="showPlayer(this.dataset.player)"
+            onerror="this.src='pics/default.jpg'"
+            class="podium-photo"
+        >
+        <span id="podium-flag-${idx}">${fanFlagImg(group.players[0]?.name)}</span>
+    </div>
 
     <div class="podium-names">
         ${group.players.map((p, i) => `
@@ -548,9 +637,11 @@ ${podiumRanks.map((group, idx) => `
           //Get Image store to const
           const img = document.getElementById(`podium-img-${cardIndex}`);
           img.onerror = () => img.src = 'pics/default.jpg';
+          const flagSlot = document.getElementById(`podium-flag-${cardIndex}`);
 
 
           img.style.opacity = 0;
+          if (flagSlot) flagSlot.style.opacity = 0;
 
           setTimeout(() => {
 
@@ -558,6 +649,10 @@ ${podiumRanks.map((group, idx) => `
             img.dataset.player = player.name;
             img.src = `pics/${player.name}.jpg`;
             img.style.opacity = 1;
+            if (flagSlot) {
+              flagSlot.innerHTML = fanFlagImg(player.name);
+              flagSlot.style.opacity = 1;
+            }
 
           }, 200);
 
@@ -737,7 +832,10 @@ ${podiumRanks.map((group, idx) => `
             <div class="race-track">
               <div class="race-fill" style="width:2%;--race-color:${raceState.colors[player.name] || '#22c55e'}"></div>
               <div class="race-runner" style="--runner-left:2%">
-                <img class="race-photo" src="pics/${player.name}.jpg" onerror="this.src='pics/default.jpg'" alt="">
+                <div class="race-photo-wrap">
+                  <img class="race-photo" src="pics/${player.name}.jpg" onerror="this.src='pics/default.jpg'" alt="">
+                  ${fanFlagImg(player.name)}
+                </div>
                 <div class="race-name" title="${player.name}">${player.name}</div>
               </div>
             </div>
