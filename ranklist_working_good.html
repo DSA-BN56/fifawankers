@@ -694,7 +694,7 @@
         workbookData.bqQuestions.forEach(qLabel => {
           const opts = new Set();
           workbookData.players.forEach(p => {
-            if (p.bqPredictions[qLabel] && p.bqPredictions[qLabel] !== "-5") opts.add(p.bqPredictions[qLabel]);
+            if (p.bqPredictions[qLabel]) opts.add(p.bqPredictions[qLabel]);
           });
           workbookData.bqOptions[qLabel] = [...opts].sort();
         });
