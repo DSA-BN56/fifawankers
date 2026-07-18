@@ -1,0 +1,10 @@
+BQ1.  Will there be a penalty shoot out in the 2026 fifa worldcup final ? (Options YES or NO)		
+BQ2.  Which team will score the first goal in the Final?		
+BQ3.  Who will be named Player of the Match in the Final?		
+BQ4.  Who will win the Golden Ball (Player of the Tournament)?		
+BQ5.  Who will win the Golden Boot (Top Scorer)?		
+BQ6.  Who will win the Golden Glove (Best Goalkeeper)?		
+BQ7.  Who will finish in 4th place?		
+BQ8.  Who will finish in 3rd place?		
+BQ9.  Who will finish as the Runner-up?		
+BQ10. Who will win the 2026 FIFA World Cup? 

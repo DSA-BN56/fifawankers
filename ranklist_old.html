@@ -400,7 +400,6 @@
     <div id="summary"></div>
     <div id="podium"></div>
     <div id="bq-section"></div>
-    <div id="bq-predicted"></div>
     <div id="raceArea"></div>
 
     <div class="card">
@@ -408,6 +407,7 @@
     </div>
 
     <div id="playerArea"></div>
+    <div id="bq-predicted"></div>
     <div id="leaderboard"></div>
   </div>
 
@@ -749,7 +749,7 @@
       document.getElementById('bq-section').innerHTML = `
         <div class="bq-section-inner">
           <h2>🎯 Check Predictions</h2>
-          <p class="bq-subtitle">Select the correct answer for each Bumper Question. Players who predicted correctly get +25 pts; players who predicted wrongly get -5 pts (players who left a question blank are unaffected).</p>
+          <p class="bq-subtitle">Select the correct answer for each Bumper Question. Players who predicted correctly get +25 pts each.</p>
           <div class="bq-grid">${dropdowns}</div>
           <button class="bq-reset-btn" onclick="resetBQSelections()">Reset All</button>
         </div>`;
@@ -770,19 +770,14 @@
     }
 
     function recalculateBQPoints() {
-      // Award 25 pts per BQ question where player's prediction matches the selected answer.
-      // Deduct 5 pts per BQ question where the player made a prediction but it does NOT match
-      // (players who left a question blank are not penalized for it).
+      // Award 25 pts per BQ question where player's prediction matches selected answer
       workbookData.players.forEach(player => {
         let extra = 0;
         Object.entries(bqSelections).forEach(([q, answer]) => {
           if (!answer) return;
           const prediction = player.bqPredictions && player.bqPredictions[q];
-          if (!prediction) return; // no prediction made -> no reward, no penalty
-          if (prediction.toLowerCase() === answer.toLowerCase()) {
+          if (prediction && prediction.toLowerCase() === answer.toLowerCase()) {
             extra += 25;
-          } else {
-            extra -= 5;
           }
         });
         player.predictedBQPoints = extra;
@@ -811,7 +806,7 @@
           <td>${idx + 1}</td>
           <td class="${isFirst ? 'pred-winner' : ''}">${p.name}${isFirst ? ' 🏆' : ''}</td>
           <td>${p.base}</td>
-          <td style="color:${p.bqBonus < 0 ? '#ef4444' : '#fbbf24'};font-weight:700">${p.bqBonus >= 0 ? '+' : ''}${p.bqBonus}</td>
+          <td style="color:#fbbf24;font-weight:700">+${p.bqBonus}</td>
           <td style="font-weight:800">${p.total}</td>
         </tr>`;
       }).join('');
