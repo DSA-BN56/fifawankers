@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="icon" href="./favicon.ico">
+  <title>FIFA Prediction League Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* ── Check Predictions (BQ) section ── */
+    #bq-section {
+      margin: 12px 0;
+    }
+    .bq-section-inner {
+      background: linear-gradient(135deg,#1e293b 0%,#0f172a 100%);
+      border: 1px solid #334155;
+      border-radius: 16px;
+      padding: 20px 24px;
+    }
+    .bq-section-inner h2 {
+      margin: 0 0 6px;
+      font-size: 1.3em;
+      color: #fbbf24;
+    }
+    .bq-subtitle {
+      font-size: .85em;
+      color: #64748b;
+      margin: 0 0 16px;
+    }
+    .bq-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .bq-item label {
+      display: block;
+      font-size: .82em;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 5px;
+    }
+    .bq-item select {
+      width: 100%;
+      padding: 9px 30px 9px 10px;
+      border-radius: 9px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: .95em;
+      cursor: pointer;
+      appearance: none;
+      background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" width="10" height="5" fill="%23e2e8f0"><polygon points="0,0 10,0 5,5"/></svg>');
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 10px 5px;
+      transition: border-color .2s;
+    }
+    .bq-item select:focus {
+      outline: none;
+      border-color: #fbbf24;
+    }
+    .bq-item select.answered {
+      border-color: #22c55e;
+      color: #22c55e;
+    }
+    .bq-reset-btn {
+      margin-top: 16px;
+      padding: 9px 20px;
+      background: #334155;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: .9em;
+      font-weight: 700;
+      transition: background .2s;
+    }
+    .bq-reset-btn:hover { background: #475569; }
+    /* Predicted leaderboard */
+    #bq-predicted h2 { margin: 0 0 10px; }
+    .bq-predicted-note {
+      font-size: .82em;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+    .pred-winner { color: #fbbf24; font-weight: 800; }
+    tr.bq-highlight td { background: rgba(251,191,36,.08); }
+    body {
+      margin: 0;
+      font-family: Segoe UI, Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0
+    }
+
+    header {
+      padding: 20px;
+      background: #111827
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 1400px;
+      margin: auto
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 14px;
+      padding: 16px;
+      margin: 12px 0
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #334155;
+      text-align: left
+    }
+
+    .podium {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px
+    }
+
+    .podium .card {
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .podium .card:hover {
+      transform: translateY(-4px);
+    }
+
+    .podium-photo-wrap {
+      position: relative;
+      width: 120px;
+      margin: 10px auto;
+    }
+
+    .podium-photo {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 4px solid gold;
+      display: block;
+      transition: opacity .4s ease;
+    }
+
+    .fan-flag {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #e2e8f0;
+      background: #0f172a;
+      box-shadow: 0 2px 6px rgba(0,0,0,.4);
+      transition: opacity .4s ease;
+    }
+
+    .podium-photo-wrap .fan-flag {
+      right: -2px;
+      bottom: 8px;
+      width: 36px;
+      height: 36px;
+    }
+
+    .fan-flag[hidden] {
+      display: none;
+    }
+
+    .podium-name {
+      padding: 4px;
+      cursor: pointer;
+      opacity: .6;
+    }
+
+    .active-player {
+      opacity: 1;
+      font-weight: bold;
+      color: #fbbf24;
+      background: #334155;
+      border-radius: 6px;
+    }
+
+    .good {
+      color: #22c55e
+    }
+
+    .bad {
+      color: #ef4444
+    }
+
+    .draw {
+      color: #f59e0b
+    }
+
+    .small {
+      opacity: .8;
+      font-size: .9em
+    }
+
+    .race-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 10px
+    }
+
+    .race-head h2 {
+      margin: 0
+    }
+
+    .race-match-center {
+      text-align: center;
+      margin: 8px 0 14px
+    }
+
+    .race-status {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .race-pill {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 700;
+      color: #fbbf24
+    }
+
+    .race-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px
+    }
+
+    .race-controls button {
+      border: 1px solid #475569;
+      background: #111827;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 700
+    }
+
+    .race-controls button:hover {
+      background: #334155
+    }
+
+    .race-controls button:disabled {
+      opacity: .45;
+      cursor: not-allowed
+    }
+
+    .race-bars {
+      display: grid;
+      gap: 10px
+    }
+
+    .race-row {
+      display: grid;
+      grid-template-columns: 54px minmax(180px, 1fr) 54px;
+      gap: 10px;
+      align-items: center;
+      min-height: 50px;
+      will-change: transform
+    }
+
+    .race-photo-wrap {
+      position: relative;
+      width: 32px;
+      height: 32px;
+      flex: none;
+    }
+
+    .race-photo {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, .9);
+      background: #0f172a
+    }
+
+    .race-photo-wrap .fan-flag {
+      width: 16px;
+      height: 16px;
+      right: -4px;
+      bottom: -4px;
+      border-width: 1px;
+    }
+
+    .race-rank {
+      font-weight: 800;
+      color: #cbd5e1;
+      text-align: right
+    }
+
+    .race-name {
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis
+    }
+
+    .race-track {
+      height: 30px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      position: relative
+    }
+
+    .race-fill {
+      height: 100%;
+      min-width: 3px;
+      border-radius: 7px;
+      background: var(--race-color, #22c55e);
+      transition: width var(--race-speed, .16s) linear
+    }
+
+    .race-runner {
+      position: absolute;
+      left: var(--runner-left, 2%);
+      top: 50%;
+      display: inline-flex;
+      gap: 7px;
+      align-items: center;
+      max-width: 190px;
+      padding: 3px 8px 3px 3px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, .88);
+      border: 1px solid rgba(226, 232, 240, .25);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, .24);
+      transform: translate(-100%, -50%);
+      transition: left var(--race-speed, .16s) linear
+    }
+
+    .race-score {
+      text-align: right;
+      font-size: 1.1em;
+      font-weight: 800
+    }
+
+    @media (max-width: 720px) {
+      .podium {
+        grid-template-columns: 1fr
+      }
+
+      .race-row {
+        grid-template-columns: 44px 1fr 42px
+      }
+
+      .race-track {
+        grid-column: 2 / 3;
+        grid-row: auto
+      }
+
+      .race-runner {
+        max-width: 140px
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>🏆 FIFA World Cup 2026 Prediction League</h1>
+    <div class="small">Source: _FIFA WC 2026.xlsx</div>
+  </header>
+
+  <div class="container">
+    <div id="summary"></div>
+    <div id="podium"></div>
+    <div id="bq-section"></div>
+    <div id="bq-predicted"></div>
+    <div id="raceArea"></div>
+
+    <div class="card">
+      <input id="search" placeholder="Search player..." oninput="renderPlayer()">
+    </div>
+
+    <div id="playerArea"></div>
+    <div id="leaderboard"></div>
+  </div>
+
+  <script>
+
+    function showPlayer(name) {
+
+      document.getElementById('search').value = name;
+
+      renderPlayer();
+
+      document.getElementById('playerArea')
+        .scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+    }
+
+
+    // Which World Cup team each participant is rooting for (from the fan survey).
+    // Team flag images live at pics/<CODE>.jpeg (FRA, ARG, SPA, ENG).
+    const FAN_TEAMS = {
+      "ABIN (IT)": "FRA",
+      "ABU (ECE)": "ARG",
+      "ABY (ECE)": "ARG",
+      "AJITH (ME)": "FRA",
+      "ALBIN (ECE)": "FRA",
+      "ANISH J (ME)": "FRA",
+      "ANISH SAM (EEE)": "SPA",
+      "ANSON (ECE)": "ARG",
+      "DEEPU (ECE)": "FRA",
+      "EBEN (EEE)": "FRA",
+      "ELDHO (EEE)": "ENG",
+      "GEORGE J (ME)": "FRA",
+      "GEORGE T (ECE)": "ARG",
+      "JACOB J (CSE)": "FRA",
+      "JEFFIN (EEE)": "SPA",
+      "JINU M (ECE)": "SPA",
+      "JOBY (ECE)": "FRA",
+      "JOYAL (EEE)": "FRA",
+      "NIDHIN (ECE)": "FRA",
+      "PRASEETH (ECE)": "FRA",
+      "PRASHANTH (EEE)": "SPA",
+      "RAKESH (ECE)": "FRA",
+      "RATHISH (ME)": "FRA",
+      "RESHMA (CSE)": "FRA",
+      "SAJI (ECE)": "ARG",
+      "SHIJO (ECE)": "FRA",
+      "SURAJ (CSE)": "FRA",
+      "TIBIN (EEE)": "FRA",
+      "VARSHA (ECE)": "SPA",
+      "VINEESH (ECE)": "FRA",
+      "VINU (EEE)": "FRA"
+      // JACKSON (ECE) and SOORAJ (ECE) didn't declare a team in the fan survey.
+    };
+
+    function fanFlagImg(name, extraClass = "") {
+      const team = FAN_TEAMS[name];
+      if (!team) return "";
+      return `<img class="fan-flag ${extraClass}" src="pics/${team}.jpeg" alt="${team} fan" title="${team} fan" onerror="this.hidden=true">`;
+    }
+
+    let workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
+    let podiumTimers = [];
+    let raceState = {
+      frames: [],
+      frameIndex: 0,
+      startFrameIndex: 0,
+      startMatch: 12,
+      timer: null,
+      playing: false,
+      stopped: true,
+      maxScore: 1,
+      autoStarted: false,
+      observer: null,
+      colors: {}
+    };
+
+    async function loadWorkbook() {
+      try {
+
+        const sheetId = "1JkPBg9yjQcoPRm5dFkQ9QWKv6BOp8PKXZ16hJAsem5k";
+
+        const url =
+          `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=xlsx&t=${Date.now()}`;
+
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const buf = await res.arrayBuffer();
+
+        const wb = XLSX.read(buf, {
+          type: "array"
+        });
+
+        parseWorkbook(wb);
+
+      } catch (e) {
+
+        console.error(e);
+
+        document.body.innerHTML +=
+          `<div class="card">
+        Failed to load Google Sheet
+        <br>${e}
+      </div>`;
+      }
+    }
+
+    function parseWorkbook(wb) {
+
+      workbookData = { players: [], leaderboard: [], fixtures: {}, results: {} };
+
+      const fixture = wb.Sheets['FIXTURE'];
+
+      if (fixture) {
+
+        const rows = XLSX.utils.sheet_to_json(
+          fixture,
+          { header: 1 }
+        );
+
+        rows.forEach(r => {
+
+          const matchNo = r[0];
+
+          if (!matchNo) return;
+
+          // Column E
+          workbookData.fixtures[matchNo] = r[4] || "";
+
+          // Column G
+          workbookData.results[matchNo] = r[6] || "";
+
+        });
+      }
+
+      const rank = wb.Sheets['RANK LIST'];
+      if (rank) {
+        const rows = XLSX.utils.sheet_to_json(rank, { header: 1 });
+        rows.forEach(r => {
+
+          if (!r[1] || !r[2]) return;
+
+          if (
+            String(r[1]).toLowerCase() === "name" ||
+            String(r[2]).toLowerCase().includes("goal")
+          ) {
+            return;
+          }
+
+          workbookData.leaderboard.push({
+            rank: Number(r[0]),
+            name: String(r[1]),
+            points: Number(r[2])
+          });
+
+        });
+      }
+
+      const results = wb.Sheets['RESULTS'];
+      if (results) {
+        const rows = XLSX.utils.sheet_to_json(results, { header: 1 });
+        rows.forEach(r => {
+          if (r[0]) workbookData.results[r[0]] = r[1];
+        });
+      }
+
+      const score = wb.Sheets['SCORE SHEET'];
+      if (score) {
+        const rows = XLSX.utils.sheet_to_json(score, { header: 1 });
+
+        // ── BQ column detection ──────────────────────────────────────────────
+        // A column is a BQ column if rows[2][c] has no match number.
+        // For the label we check rows[0], rows[1], rows[2] in order — skipping
+        // any value that is purely numeric (e.g. point allocations).
+        const bqColMap = {}; // colIndex -> question label string
+        const matchNumRow = rows[2] || [];
+        const labelRow0   = rows[0] || [];
+        const labelRow1   = rows[1] || [];
+        let bqCounter = 0;
+
+        // Log raw header rows to console for debugging
+        console.log("[BQ] row0 (headers?):", labelRow0);
+        console.log("[BQ] row1:", labelRow1);
+        console.log("[BQ] row2 (match nums):", matchNumRow);
+
+        const isTextLabel = v => v !== undefined && v !== "" && isNaN(Number(String(v).trim()));
+
+        const sampleRow = rows[3] || [];
+        const maxCol = Math.max(sampleRow.length, labelRow0.length, labelRow1.length, matchNumRow.length);
+
+        for (let c = 2; c < maxCol; c++) {
+          const matchNum = matchNumRow[c];
+          const isMatchCol = matchNum !== undefined && matchNum !== "" && !isNaN(Number(matchNum));
+          if (!isMatchCol) {
+            // Pick the best available text label across all header rows
+            const rawLabel =
+              isTextLabel(labelRow0[c]) ? String(labelRow0[c]).trim() :
+              isTextLabel(labelRow1[c]) ? String(labelRow1[c]).trim() :
+              isTextLabel(matchNumRow[c]) ? String(matchNumRow[c]).trim() :
+              "";
+
+            // Include column if it has a text label OR any player wrote a text answer
+            const hasText = rows.slice(3).some(r => r && r[c] !== undefined && r[c] !== "" && isNaN(Number(r[c])));
+            if (rawLabel || hasText) {
+              bqCounter++;
+              const label = rawLabel || ("BQ" + bqCounter);
+              bqColMap[c] = label;
+            }
+          }
+        }
+
+        workbookData.bqQuestions = Object.entries(bqColMap)
+          .sort((a, b) => Number(a[0]) - Number(b[0]))
+          .map(([, label]) => label);
+
+        console.log("[BQ] detected columns:", bqColMap);
+        console.log("[BQ] questions:", workbookData.bqQuestions);
+
+        for (let i = 3; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r || !r[0]) continue;
+
+          let player = {
+            name: r[0],
+            total: r[1] || 0,
+            correct: 0,
+            wrong: 0,
+            draw: 0,
+            matches: [],
+            bqPoints: 0,
+            bqPredictions: {} // e.g. { BQ1: "France", BQ2: "Mbappe", ... }
+          };
+
+          // Collect BQ predictions
+          Object.entries(bqColMap).forEach(([ci, label]) => {
+            const val = r[Number(ci)];
+            if (val !== undefined && val !== "") {
+              player.bqPredictions[label] = String(val).trim();
+            }
+          });
+
+          for (let c = 2; c < r.length; c++) {
+            // Skip BQ columns — they are predictions, not match points
+            if (bqColMap[c]) continue;
+
+            let v = r[c];
+            if (v === undefined || v === "") continue;
+
+            let matchVal = matchNumRow[c];
+            if (matchVal === undefined || matchVal === null || matchVal === "") {
+              // Unrecognised non-BQ column with no match number — skip
+              continue;
+            }
+            let matchNo = Number(matchVal);
+            if (isNaN(matchNo)) continue;
+
+            let pointsVal = Number(v);
+            if (isNaN(pointsVal)) continue;
+
+            let status = "Unknown";
+            if (pointsVal > 1) { status = "Correct"; player.correct++; }
+            else if (pointsVal == 1) { status = "Draw Bonus"; player.draw++; }
+            else if (pointsVal < 0) { status = "Wrong"; player.wrong++; }
+
+            player.matches.push({
+              match: matchNo,
+              fixture: workbookData.fixtures[matchNo] || ("Match " + matchNo),
+              winner: workbookData.results[matchNo] || "Not Available",
+              status: status,
+              points: pointsVal
+            });
+          }
+
+          workbookData.players.push(player);
+        }
+
+        // Build unique answer options per BQ question
+        workbookData.bqOptions = {};
+        workbookData.bqQuestions.forEach(qLabel => {
+          const opts = new Set();
+          workbookData.players.forEach(p => {
+            if (p.bqPredictions[qLabel] && p.bqPredictions[qLabel] !== "-5" &&
+			p.bqPredictions[qLabel] !== "25") opts.add(p.bqPredictions[qLabel]);
+          });
+          workbookData.bqOptions[qLabel] = [...opts].sort();
+        });
+      }
+
+      renderDashboard();
+    }
+
+    // ── Full question text for each BQ key ──
+    const BQ_QUESTIONS = {
+      "BQ1":  "BQ1.  Will there be a penalty shoot out in the 2026 FIFA World Cup final? (YES or NO)",
+      "BQ2":  "BQ2.  Which team will score the first goal in the Final?",
+      "BQ3":  "BQ3.  Who will be named Player of the Match in the Final?",
+      "BQ4":  "BQ4.  Who will win the Golden Ball (Player of the Tournament)?",
+      "BQ5":  "BQ5.  Who will win the Golden Boot (Top Scorer)?",
+      "BQ6":  "BQ6.  Who will win the Golden Glove (Best Goalkeeper)?",
+      "BQ7":  "BQ7.  Who will finish in 4th place?",
+      "BQ8":  "BQ8.  Who will finish in 3rd place?",
+      "BQ9":  "BQ9.  Who will finish as the Runner-up?",
+      "BQ10": "BQ10. Who will win the 2026 FIFA World Cup?"
+    };
+
+    // ── BQ state: user's currently selected answers ──
+    const bqSelections = {}; // { BQ1: "France" | "", ... }
+
+    function buildBQUI() {
+      const questions = workbookData.bqQuestions || [];
+      if (!questions.length) {
+        document.getElementById('bq-section').innerHTML = '';
+        return;
+      }
+      // Ensure selections exist for each question (default blank)
+      questions.forEach(q => { if (!(q in bqSelections)) bqSelections[q] = ''; });
+
+      const dropdowns = questions.map(q => {
+        const opts = (workbookData.bqOptions[q] || []);
+        const optsHTML = opts.map(o =>
+          `<option value="${o}"${bqSelections[q] === o ? ' selected' : ''}>${o}</option>`
+        ).join('');
+        // Show full question text; fall back to the raw key if not in map
+        const questionText = BQ_QUESTIONS[q] || q;
+        return `
+          <div class="bq-item">
+            <label title="${questionText}">${questionText}</label>
+            <select id="bq-sel-${q}" onchange="onBQChange('${q}', this.value)" class="${bqSelections[q] ? 'answered' : ''}">
+              <option value="">-- Select Answer --</option>
+              ${optsHTML}
+            </select>
+          </div>`;
+      }).join('');
+
+      document.getElementById('bq-section').innerHTML = `
+        <div class="bq-section-inner">
+          <h2>🎯 Check Predictions</h2>
+          <p class="bq-subtitle">Select the correct answer for each Bumper Question. Players who predicted correctly get +25 pts; players who predicted wrongly get -5 pts (players who left a question blank are unaffected).</p>
+          <div class="bq-grid">${dropdowns}</div>
+          <button class="bq-reset-btn" onclick="resetBQSelections()">Reset All</button>
+        </div>`;
+    }
+
+    function onBQChange(qLabel, value) {
+      bqSelections[qLabel] = value;
+      // Style the select
+      const sel = document.getElementById(`bq-sel-${qLabel}`);
+      if (sel) sel.className = value ? 'answered' : '';
+      renderBQPredicted();
+    }
+
+    function resetBQSelections() {
+      Object.keys(bqSelections).forEach(k => bqSelections[k] = '');
+      buildBQUI(); // rebuild dropdowns to reset to blank
+      renderBQPredicted();
+    }
+
+    function recalculateBQPoints() {
+      // Award 25 pts per BQ question where player's prediction matches the selected answer.
+      // Deduct 5 pts per BQ question where the player made a prediction but it does NOT match
+      // (players who left a question blank are not penalized for it).
+      workbookData.players.forEach(player => {
+        let extra = 0;
+        Object.entries(bqSelections).forEach(([q, answer]) => {
+          if (!answer) return;
+          const prediction = player.bqPredictions && player.bqPredictions[q];
+          if (!prediction) return; // no prediction made -> no reward, no penalty
+          if (prediction.toLowerCase() === answer.toLowerCase()) {
+            extra += 25;
+          } else {
+            extra -= 5;
+          }
+        });
+        player.predictedBQPoints = extra;
+      });
+    }
+
+    function renderBQPredicted() {
+      recalculateBQPoints();
+      const anySelected = Object.values(bqSelections).some(v => v !== '');
+      const predicted = workbookData.players.map(p => ({
+        name: p.name,
+        base: p.total,
+        bqBonus: p.predictedBQPoints || 0,
+        total: p.total + (p.predictedBQPoints || 0)
+      }));
+      predicted.sort((a, b) => b.total - a.total);
+
+      if (!anySelected) {
+        document.getElementById('bq-predicted').innerHTML = '';
+        return;
+      }
+
+      const rows = predicted.map((p, idx) => {
+        const isFirst = idx === 0;
+        return `<tr class="${isFirst ? 'bq-highlight' : ''}">
+          <td>${idx + 1}</td>
+          <td class="${isFirst ? 'pred-winner' : ''}">${p.name}${isFirst ? ' 🏆' : ''}</td>
+          <td>${p.base}</td>
+          <td style="color:${p.bqBonus < 0 ? '#ef4444' : '#fbbf24'};font-weight:700">${p.bqBonus >= 0 ? '+' : ''}${p.bqBonus}</td>
+          <td style="font-weight:800">${p.total}</td>
+        </tr>`;
+      }).join('');
+
+      document.getElementById('bq-predicted').innerHTML = `
+        <div class="card">
+          <h2>📊 Predicted Ranking (BQ)</h2>
+          <p class="bq-predicted-note">Assuming the selected BQ answers are correct. +25 pts awarded per correct prediction.</p>
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Current Pts</th><th>BQ Bonus</th><th>Total</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    function renderDashboard() {
+      podiumTimers.forEach(clearInterval);
+      podiumTimers = [];
+      buildBQUI();
+      renderBQPredicted();
+      const rank1 = workbookData.leaderboard.filter(p => p.rank === 1);
+      const rank2 = workbookData.leaderboard.filter(p => p.rank === 2);
+      const rank3 = workbookData.leaderboard.filter(p => p.rank === 3);
+
+      const podiumRanks = [
+        { medal: "🥇", rank: 1, players: rank1 },
+        { medal: "🥈", rank: 2, players: rank2 },
+        { medal: "🥉", rank: 3, players: rank3 }
+      ];
+
+      document.getElementById('summary').innerHTML = `
+ <div class="card">
+ Total Players: ${workbookData.players.length}<br>
+ Matches Loaded: ${Object.keys(workbookData.fixtures).length}
+ </div>`;
+
+
+      document.getElementById('podium').innerHTML = `
+<div class="podium">
+${podiumRanks.map((group, idx) => `
+
+<div class="card podium-card">
+
+    <h2>${group.medal}</h2>
+    <div>Rank #${group.rank}</div>
+
+    <div class="podium-photo-wrap">
+        <img
+            id="podium-img-${idx}"
+            src="pics/${group.players[0]?.name}.jpg"
+            data-player="${group.players[0]?.name || ''}"
+        onclick="showPlayer(this.dataset.player)"
+            onerror="this.src='pics/default.jpg'"
+            class="podium-photo"
+        >
+        <span id="podium-flag-${idx}">${fanFlagImg(group.players[0]?.name)}</span>
+    </div>
+
+    <div class="podium-names">
+        ${group.players.map((p, i) => `
+            <div
+                id="podium-name-${idx}-${i}"
+                class="podium-name ${i === 0 ? 'active-player' : ''}"
+                onclick="showPlayer('${p.name.replace(/'/g, "\\'")}')"
+            >
+                ${p.name}
+            </div>
+        `).join('')}
+    </div>
+
+    <div style="margin-top:10px;font-weight:bold">
+    ${group.players[0]?.points || 0} Points
+</div>
+
+</div>
+
+`).join('')}
+</div>
+`;
+
+      //Podium timing jobs
+      podiumRanks.forEach((group, cardIndex) => {
+
+        if (group.players.length <= 1)
+          return;
+
+        let current = 0;
+
+        const timer = setInterval(() => {
+
+          current =
+            (current + 1) % group.players.length;
+
+          const player =
+            group.players[current];
+
+          //Get Image store to const
+          const img = document.getElementById(`podium-img-${cardIndex}`);
+          img.onerror = () => img.src = 'pics/default.jpg';
+          const flagSlot = document.getElementById(`podium-flag-${cardIndex}`);
+
+
+          img.style.opacity = 0;
+          if (flagSlot) flagSlot.style.opacity = 0;
+
+          setTimeout(() => {
+
+            img.onerror = () => img.src = 'pics/default.jpg';
+            img.dataset.player = player.name;
+            img.src = `pics/${player.name}.jpg`;
+            img.style.opacity = 1;
+            if (flagSlot) {
+              flagSlot.innerHTML = fanFlagImg(player.name);
+              flagSlot.style.opacity = 1;
+            }
+
+          }, 200);
+
+          group.players.forEach((p, i) => {
+
+            document
+              .getElementById(
+                `podium-name-${cardIndex}-${i}`
+              )
+              .classList
+              .toggle(
+                'active-player',
+                i === current
+              );
+          });
+
+        }, 3000);
+        podiumTimers.push(timer);
+
+      });
+
+      setupRaceAnimation();
+
+      document.getElementById('leaderboard').innerHTML = `
+ <div class="card">
+ <h2>Leaderboard</h2>
+ <table>
+ <tr><th>Rank</th><th>Name</th><th>Points</th></tr>
+ ${workbookData.leaderboard.map((p, i) => `<tr><td>${p.rank}</td><td>${p.name}</td><td>${p.points}</td></tr>`).join('')}
+ </table>
+ </div>`;
+    }
+
+    function setupRaceAnimation() {
+      stopRace(false);
+      if (raceState.observer) {
+        raceState.observer.disconnect();
+        raceState.observer = null;
+      }
+      raceState.autoStarted = false;
+      buildRaceFrames();
+
+      if (!raceState.frames.length) {
+        document.getElementById('raceArea').innerHTML = `
+          <div class="card">Race bar animation will appear after match scores are loaded.</div>`;
+        return;
+      }
+
+      document.getElementById('raceArea').innerHTML = `
+        <div class="card">
+          <div class="race-head">
+            <h2>Player Progression</h2>
+            <div class="race-status">
+              <span class="race-pill" id="raceLeader">Leader: -</span>
+            </div>
+          </div>
+          <div class="race-controls">
+            <button id="raceStop" onclick="toggleStopResumeRace()">Pause</button>
+            <button onclick="replayRace()">Replay</button>
+          </div>
+          <div class="race-match-center">
+            <span class="race-pill" id="raceMatch">Match 0 / ${raceState.frames.length - 1}</span>
+          </div>
+          <div class="race-bars" id="raceBars"></div>
+        </div>`;
+
+      renderRaceFrame(raceState.startFrameIndex);
+      startRaceWhenVisible();
+    }
+
+    function buildRaceFrames() {
+      const rankedNames = workbookData.leaderboard
+        .slice()
+        .sort((a, b) => a.rank - b.rank || b.points - a.points)
+        .map(p => p.name);
+
+      const playerNames = (rankedNames.length ? rankedNames : workbookData.players
+        .slice()
+        .sort((a, b) => b.total - a.total)
+        .map(p => p.name));
+
+      const racePlayers = playerNames
+        .map(name => workbookData.players.find(p => p.name === name))
+        .filter(Boolean);
+      const palette = [
+        '#22c55e', '#38bdf8', '#f97316', '#a78bfa', '#ef4444',
+        '#14b8a6', '#eab308', '#ec4899', '#84cc16', '#60a5fa'
+      ];
+
+      raceState.colors = {};
+      racePlayers.forEach((player, index) => {
+        raceState.colors[player.name] = palette[index % palette.length];
+      });
+
+      const matchNumbers = [...new Set([
+        ...Object.keys(workbookData.fixtures).map(Number).filter(Boolean),
+        ...racePlayers.flatMap(p => p.matches.map(m => Number(m.match)).filter(Boolean))
+      ])].sort((a, b) => a - b);
+
+      const scores = {};
+      racePlayers.forEach(p => scores[p.name] = p.bqPoints || 0);
+
+      const startingFrame = {
+        match: 0,
+        standings: racePlayers.map(p => ({ name: p.name, points: p.bqPoints || 0 }))
+      };
+
+      raceState.frames = [startingFrame];
+
+      matchNumbers.forEach(matchNo => {
+        racePlayers.forEach(player => {
+          const match = player.matches.find(m => Number(m.match) === matchNo);
+          scores[player.name] += Number(match?.points || 0);
+        });
+
+        raceState.frames.push({
+          match: matchNo,
+          standings: racePlayers
+            .map(p => ({ name: p.name, points: scores[p.name] }))
+            .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name))
+        });
+      });
+
+      raceState.maxScore = Math.max(
+        1,
+        ...raceState.frames.flatMap(frame => frame.standings.map(p => p.points))
+      );
+      raceState.startFrameIndex = raceState.frames.findIndex(frame => frame.match >= raceState.startMatch);
+      if (raceState.startFrameIndex < 0) {
+        raceState.startFrameIndex = 0;
+      }
+    }
+
+    function getOrdinalHTML(n) {
+      let j = n % 10,
+          k = n % 100;
+      let suffix = "th";
+      if (j == 1 && k != 11) {
+        suffix = "st";
+      } else if (j == 2 && k != 12) {
+        suffix = "nd";
+      } else if (j == 3 && k != 13) {
+        suffix = "rd";
+      }
+      return `${n}<sup>${suffix}</sup>`;
+    }
+
+    function renderRaceFrame(index, slowFrame = false) {
+      if (!raceState.frames.length) return;
+
+      raceState.frameIndex = Math.max(0, Math.min(index, raceState.frames.length - 1));
+      const frame = raceState.frames[raceState.frameIndex];
+      const leader = frame.standings[0];
+      const maxFrameScore = Math.max(1, ...frame.standings.map(p => p.points), raceState.maxScore);
+      const bars = document.getElementById('raceBars');
+
+      document.getElementById('raceMatch').textContent =
+        `Match ${frame.match} / ${raceState.frames[raceState.frames.length - 1].match}`;
+      document.getElementById('raceLeader').textContent =
+        leader ? `Leader: ${leader.name}` : 'Leader: -';
+
+      if (!bars) return;
+      bars.style.setProperty('--race-speed', slowFrame ? '.48s' : '.16s');
+
+      let currentRank = 1;
+      const standingsWithRank = frame.standings.map((player, index) => {
+        if (index > 0 && player.points < frame.standings[index - 1].points) {
+          currentRank = index + 1;
+        }
+        return { ...player, rank: currentRank };
+      });
+
+      if (!bars.children.length) {
+        bars.innerHTML = standingsWithRank.map((player) => `
+          <div class="race-row" data-player="${player.name}">
+            <div class="race-rank">${getOrdinalHTML(player.rank)}</div>
+            <div class="race-track">
+              <div class="race-fill" style="width:2%;--race-color:${raceState.colors[player.name] || '#22c55e'}"></div>
+              <div class="race-runner" style="--runner-left:2%">
+                <div class="race-photo-wrap">
+                  <img class="race-photo" src="pics/${player.name}.jpg" onerror="this.src='pics/default.jpg'" alt="">
+                  ${fanFlagImg(player.name)}
+                </div>
+                <div class="race-name" title="${player.name}">${player.name}</div>
+              </div>
+            </div>
+            <div class="race-score">0</div>
+          </div>`).join('');
+      }
+
+      const previousTops = new Map(
+        [...bars.children].map(row => [row.dataset.player, row.getBoundingClientRect().top])
+      );
+      const rowsByPlayer = new Map(
+        [...bars.children].map(row => [row.dataset.player, row])
+      );
+      const movedRows = [];
+
+      standingsWithRank.forEach((player, index) => {
+        const row = rowsByPlayer.get(player.name);
+        if (!row) return;
+
+        const width = Math.max(2, (player.points / maxFrameScore) * 100);
+        row.style.order = index;
+        row.querySelector('.race-rank').innerHTML = getOrdinalHTML(player.rank);
+        row.querySelector('.race-name').textContent = player.name;
+        row.querySelector('.race-fill').style.width = `${width}%`;
+        row.querySelector('.race-fill').style.setProperty('--race-color', raceState.colors[player.name] || '#22c55e');
+        row.querySelector('.race-runner').style.setProperty('--runner-left', `${width}%`);
+        row.querySelector('.race-score').textContent = player.points;
+        movedRows.push(row);
+      });
+
+      movedRows.forEach(row => {
+        const previousTop = previousTops.get(row.dataset.player);
+        if (previousTop === undefined) return;
+
+        const newTop = row.getBoundingClientRect().top;
+        const distance = previousTop - newTop;
+        if (!distance) return;
+
+        row.style.transition = 'none';
+        row.style.transform = `translateY(${distance}px)`;
+      });
+
+      bars.getBoundingClientRect();
+
+      requestAnimationFrame(() => {
+        movedRows.forEach(row => {
+          row.style.transition = `transform ${slowFrame ? '.48s' : '.16s'} ease`;
+          row.style.transform = 'translateY(0)';
+        });
+      });
+
+      updateRaceButtons();
+    }
+
+    function startRaceWhenVisible() {
+      const raceArea = document.getElementById('raceArea');
+      if (!raceArea) return;
+
+      const startOnce = () => {
+        if (raceState.autoStarted) return;
+
+        raceState.autoStarted = true;
+        window.removeEventListener('scroll', checkRaceVisibility);
+        window.removeEventListener('resize', checkRaceVisibility);
+        playRace();
+
+        if (raceState.observer) {
+          raceState.observer.disconnect();
+          raceState.observer = null;
+        }
+      };
+
+      const checkRaceVisibility = () => {
+        const rect = raceArea.getBoundingClientRect();
+        if (rect.top < window.innerHeight * .75 && rect.bottom > window.innerHeight * .15) {
+          startOnce();
+        }
+      };
+
+      window.addEventListener('scroll', checkRaceVisibility, { passive: true });
+      window.addEventListener('resize', checkRaceVisibility);
+      setTimeout(checkRaceVisibility, 0);
+
+      if (!('IntersectionObserver' in window)) {
+        return;
+      }
+
+      raceState.observer = new IntersectionObserver(entries => {
+        if (entries.some(entry => {
+          const rect = entry.boundingClientRect;
+          return entry.isIntersecting &&
+            rect.top < window.innerHeight * .75 &&
+            rect.bottom > window.innerHeight * .15;
+        })) {
+          startOnce();
+        }
+      }, { threshold: 0 });
+
+      raceState.observer.observe(raceArea);
+    }
+
+    function playRace() {
+      if (!raceState.frames.length || raceState.playing) return;
+
+      if (raceState.frameIndex >= raceState.frames.length - 1) {
+        raceState.frameIndex = raceState.startFrameIndex;
+        renderRaceFrame(raceState.startFrameIndex);
+      }
+
+      raceState.playing = true;
+      raceState.stopped = false;
+      updateRaceButtons();
+      scheduleNextRaceFrame();
+    }
+
+    function scheduleNextRaceFrame() {
+      clearTimeout(raceState.timer);
+
+      const nextIndex = raceState.frameIndex + 1;
+      if (!raceState.playing || nextIndex >= raceState.frames.length) {
+        pauseRace();
+        return;
+      }
+
+      const slowFrame = hasRacePositionChange(raceState.frameIndex, nextIndex);
+      const delay = slowFrame ? 520 : 175;
+
+      raceState.timer = setTimeout(() => {
+        renderRaceFrame(nextIndex, slowFrame);
+        scheduleNextRaceFrame();
+      }, delay);
+    }
+
+    function hasRacePositionChange(fromIndex, toIndex) {
+      const fromFrame = raceState.frames[fromIndex];
+      const toFrame = raceState.frames[toIndex];
+      if (!fromFrame || !toFrame) return false;
+
+      return toFrame.standings.some((player, index) =>
+        fromFrame.standings[index]?.name !== player.name
+      );
+    }
+
+    function pauseRace() {
+      clearTimeout(raceState.timer);
+      raceState.timer = null;
+      raceState.playing = false;
+      updateRaceButtons();
+    }
+
+    function stopRace(render = true) {
+      clearTimeout(raceState.timer);
+      raceState.timer = null;
+      raceState.playing = false;
+      raceState.stopped = true;
+      raceState.frameIndex = raceState.startFrameIndex;
+
+      if (render && raceState.frames.length && document.getElementById('raceBars')) {
+        renderRaceFrame(raceState.startFrameIndex);
+      }
+    }
+
+    function replayRace() {
+      stopRace();
+      playRace();
+    }
+
+    function toggleStopResumeRace() {
+      if (raceState.playing) {
+        pauseRace();
+      } else {
+        playRace();
+      }
+    }
+
+    function updateRaceButtons() {
+      const stopButton = document.getElementById('raceStop');
+
+      if (!stopButton) return;
+
+      stopButton.textContent = raceState.playing ? 'Pause' : 'Resume';
+      stopButton.disabled = !raceState.frames.length;
+    }
+
+    function renderPlayer() {
+      let q = document.getElementById('search').value.toLowerCase();
+      if (!q) return;
+
+      let p = workbookData.players.find(x => x.name.toLowerCase().includes(q));
+      if (!p) {
+        document.getElementById('playerArea').innerHTML = '<div class="card">No player found</div>';
+        return;
+      }
+
+      const accuracy = Math.round((p.correct / Math.max(1, p.correct + p.wrong + p.draw)) * 100);
+
+      document.getElementById('playerArea').innerHTML = `
+ <div class="card">
+ <h3 style="cursor:pointer"
+    onclick="showPlayer('${p.name}')">
+    ${p.name}
+</h3>
+  <p>Total Points: ${p.total}</p>
+ <p>Accuracy: ${accuracy}%</p>
+ <canvas id="chart"></canvas>
+ </div>
+
+ <div class="card">
+ <h3>Match History</h3>
+ <table>
+ <tr><th>Match</th><th>Fixture</th><th>Winner</th><th>Outcome</th><th>Points</th></tr>
+ ${p.matches.map(m => `
+ <tr>
+ <td>${m.match}</td>
+ <td>${m.fixture}</td>
+ <td>${m.winner}</td>
+ <td class="${m.points > 1 ? 'good' : (m.points == 1 ? 'draw' : 'bad')}">${m.status}</td>
+ <td>${m.points}</td>
+ </tr>`).join('')}
+ </table>
+ </div>`;
+
+      new Chart(document.getElementById('chart'), {
+        type: 'doughnut',
+        data: {
+          labels: ['Correct', 'Draw Bonus', 'Wrong'],
+          datasets: [{ data: [p.correct, p.draw, p.wrong] }]
+        }
+      });
+    }
+
+    loadWorkbook();
+  </script>
+</body>
+
+</html>
