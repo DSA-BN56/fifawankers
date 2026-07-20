@@ -387,7 +387,20 @@
         max-width: 140px
       }
     }
-  </style>
+  
+.champion-wrap{position:relative;overflow:hidden;text-align:center;padding:50px 20px;border-radius:18px;
+background:radial-gradient(circle at top,#5b4300,#1e293b 55%,#0f172a);}
+.champion-top{font-size:56px;animation:glow 1.6s infinite alternate}
+.champion-title{font-size:2.6rem;color:#ffd700;font-weight:900;text-shadow:0 0 20px gold}
+.champion-name{font-size:2rem;color:#fff;margin:10px 0 25px}
+.champion-photo{width:280px;height:280px;border-radius:50%;object-fit:cover;border:8px solid gold;
+box-shadow:0 0 35px gold;transition:opacity .8s}
+.gold-podium{margin:30px auto 0;width:360px;background:linear-gradient(#f6d365,#b8860b);
+padding:20px;border-radius:14px;color:#222;font-weight:900;font-size:1.4rem}
+@keyframes glow{from{filter:drop-shadow(0 0 5px gold)}to{filter:drop-shadow(0 0 25px gold)}}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 
 <body>
@@ -399,10 +412,7 @@
   <div class="container">
     <div id="summary"></div>
     <div id="podium"></div>
-    <div id="bq-section"></div>
-    <div id="bq-predicted"></div>
-    <div id="raceArea"></div>
-
+    
     <div class="card">
       <input id="search" placeholder="Search player..." oninput="renderPlayer()">
     </div>
@@ -761,13 +771,11 @@
       // Style the select
       const sel = document.getElementById(`bq-sel-${qLabel}`);
       if (sel) sel.className = value ? 'answered' : '';
-      renderBQPredicted();
     }
 
     function resetBQSelections() {
       Object.keys(bqSelections).forEach(k => bqSelections[k] = '');
       buildBQUI(); // rebuild dropdowns to reset to blank
-      renderBQPredicted();
     }
 
     function recalculateBQPoints() {
@@ -831,8 +839,6 @@
     function renderDashboard() {
       podiumTimers.forEach(clearInterval);
       podiumTimers = [];
-      buildBQUI();
-      renderBQPredicted();
       const rank1 = workbookData.leaderboard.filter(p => p.rank === 1);
       const rank2 = workbookData.leaderboard.filter(p => p.rank === 2);
       const rank3 = workbookData.leaderboard.filter(p => p.rank === 3);
@@ -850,50 +856,40 @@
  </div>`;
 
 
-      document.getElementById('podium').innerHTML = `
-<div class="podium">
-${podiumRanks.map((group, idx) => `
+      document.getElementById('podium').innerHTML=`
+<div class="champion-wrap">
+<div class="champion-top">✨🎉🎊👑🏆👑🎊🎉✨</div>
+<div class="champion-title">FIFA Prediction League Champion</div>
+<div class="champion-name">🥇 ANISH SAM (EEE) 🥇</div>
+<img id="championCarousel" class="champion-photo"
+src="pics/ANISH SAM (EEE).jpg"
+onerror="this.src='pics/default.jpg'">
+<div class="gold-podium">🏆 WORLD CUP 2026 PREDICTION LEAGUE WINNER 🏆</div>
+</div>`;
+(function(){
+const imgs=[
+"pics/ANISH SAM (EEE).jpg",
+"pics/ANISH SAM (EEE)-1.jpg",
+"pics/ANISH SAM (EEE)-2.jpg",
+"pics/ANISH SAM (EEE)-3.jpg",
+"pics/ANISH SAM (EEE)-4.jpg",
+"pics/ANISH SAM (EEE)-5.jpg"
+];
+const img=document.getElementById('championCarousel');
+let i=0;
+if(img){
+setInterval(()=>{
+i=(i+1)%imgs.length;
+img.style.opacity=0;
+setTimeout(()=>{img.src=imgs[i];img.style.opacity=1;},350);
+},3000);
+}
+if(window.confetti){
+setInterval(()=>confetti({particleCount:180,spread:120,origin:{y:0}}),1800);
+}
+})();
 
-<div class="card podium-card">
-
-    <h2>${group.medal}</h2>
-    <div>Rank #${group.rank}</div>
-
-    <div class="podium-photo-wrap">
-        <img
-            id="podium-img-${idx}"
-            src="pics/${group.players[0]?.name}.jpg"
-            data-player="${group.players[0]?.name || ''}"
-        onclick="showPlayer(this.dataset.player)"
-            onerror="this.src='pics/default.jpg'"
-            class="podium-photo"
-        >
-        <span id="podium-flag-${idx}">${fanFlagImg(group.players[0]?.name)}</span>
-    </div>
-
-    <div class="podium-names">
-        ${group.players.map((p, i) => `
-            <div
-                id="podium-name-${idx}-${i}"
-                class="podium-name ${i === 0 ? 'active-player' : ''}"
-                onclick="showPlayer('${p.name.replace(/'/g, "\\'")}')"
-            >
-                ${p.name}
-            </div>
-        `).join('')}
-    </div>
-
-    <div style="margin-top:10px;font-weight:bold">
-    ${group.players[0]?.points || 0} Points
-</div>
-
-</div>
-
-`).join('')}
-</div>
-`;
-
-      //Podium timing jobs
+//Podium timing jobs
       podiumRanks.forEach((group, cardIndex) => {
 
         if (group.players.length <= 1)
@@ -948,8 +944,6 @@ ${podiumRanks.map((group, idx) => `
         podiumTimers.push(timer);
 
       });
-
-      setupRaceAnimation();
 
       document.getElementById('leaderboard').innerHTML = `
  <div class="card">
